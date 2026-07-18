@@ -20,11 +20,12 @@ routed through one of osmotool's two modes: paired/single-end FASTQ reads are sc
 (Prodigal + DIAMOND/HMMER). The `osmo_refdb` reference database is downloaded automatically from Zenodo unless you
 already have a local copy.
 
-The pipeline runs three processes:
+The pipeline runs four processes:
 
 1. **`OSMOTOOL_DOWNLOAD_DB`** — downloads and unpacks an `osmo_refdb` release, unless `--osmo_db` points at one already
 2. **`OSMOTOOL_PROFILE`** — runs `osmotool profile` on samplesheet rows with `fastq_1`[, `fastq_2`]
 3. **`OSMOTOOL_ANNOTATE`** — runs `osmotool annotate` on samplesheet rows with `fasta`
+4. **`OSMOTOOL_MERGE_COUNTS`** — merges each mode's per-sample `gene_counts.tsv` into one gene x sample matrix (`profile_gene_counts.tsv` / `annotate_gene_counts.tsv`); the two modes are never merged together since RPM and `copies_per_kb` aren't comparable
 
 ## Usage
 

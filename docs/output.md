@@ -33,6 +33,8 @@ The pipeline is built using [Nextflow](https://www.nextflow.io/) and processes d
 - `profile/<sample>/`
   - `<sample>.gene_counts.tsv`: per-gene raw counts and RPM (depth-normalised abundance) for each osmoadaptation gene family.
   - `<sample>.aln_stats.tsv`: alignment summary statistics.
+- `profile/profile_gene_counts.tsv`
+  - Merged gene x sample matrix: one row per gene, one column per profiled sample, values are RPM. Only produced when at least one sample was profiled.
 
 </details>
 
@@ -46,6 +48,8 @@ Produced by `osmotool profile` (DIAMOND blastx) for samplesheet rows with `fastq
 - `annotate/<sample>/`
   - `<sample>.gene_counts.tsv`: per-gene raw counts and `copies_per_kb` (gene-copy-number statistic) for each osmoadaptation gene family.
   - `<sample>.aln_stats.tsv`: alignment summary statistics.
+- `annotate/annotate_gene_counts.tsv`
+  - Merged gene x sample matrix: one row per gene, one column per annotated sample, values are `copies_per_kb`. Only produced when at least one sample was annotated.
 
 </details>
 

@@ -10,6 +10,7 @@ include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_osmo
 include { OSMOTOOL_DOWNLOAD_DB } from '../modules/local/osmotool/download_db'
 include { OSMOTOOL_PROFILE     } from '../modules/local/osmotool/profile'
 include { OSMOTOOL_ANNOTATE    } from '../modules/local/osmotool/annotate'
+include { OSMOTOOL_MERGE_COUNTS } from '../modules/local/osmotool/merge_counts'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -60,6 +61,26 @@ workflow OSMOFLOW {
     ch_versions = ch_versions.mix(OSMOTOOL_ANNOTATE.out.versions)
 
     //
+    // MODULE: Merge each mode's per-sample gene_counts.tsv into one gene x sample matrix.
+    // profile (RPM) and annotate (copies_per_kb) are never merged together -- see docs/output.md.
+    // Only runs when the corresponding mode has at least one sample.
+    //
+    OSMOTOOL_PROFILE.out.counts
+        .map { meta, counts -> counts }
+        .collect()
+        .map { counts -> [ 'profile', counts ] }
+        .set { ch_profile_counts }
+
+    OSMOTOOL_ANNOTATE.out.counts
+        .map { meta, counts -> counts }
+        .collect()
+        .map { counts -> [ 'annotate', counts ] }
+        .set { ch_annotate_counts }
+
+    OSMOTOOL_MERGE_COUNTS ( ch_profile_counts.mix(ch_annotate_counts) )
+    ch_versions = ch_versions.mix(OSMOTOOL_MERGE_COUNTS.out.versions)
+
+    //
     // Collate and save software versions
     //
     def topic_versions = Channel.topic("versions")
@@ -90,11 +111,12 @@ workflow OSMOFLOW {
 
 
     emit:
-    profile_counts  = OSMOTOOL_PROFILE.out.counts  // channel: [ meta, path(*.gene_counts.tsv) ]
-    profile_stats   = OSMOTOOL_PROFILE.out.stats   // channel: [ meta, path(*.aln_stats.tsv) ]
-    annotate_counts = OSMOTOOL_ANNOTATE.out.counts // channel: [ meta, path(*.gene_counts.tsv) ]
-    annotate_stats  = OSMOTOOL_ANNOTATE.out.stats  // channel: [ meta, path(*.aln_stats.tsv) ]
-    versions        = ch_versions                  // channel: [ path(versions.yml) ]
+    profile_counts  = OSMOTOOL_PROFILE.out.counts       // channel: [ meta, path(*.gene_counts.tsv) ]
+    profile_stats   = OSMOTOOL_PROFILE.out.stats        // channel: [ meta, path(*.aln_stats.tsv) ]
+    annotate_counts = OSMOTOOL_ANNOTATE.out.counts      // channel: [ meta, path(*.gene_counts.tsv) ]
+    annotate_stats  = OSMOTOOL_ANNOTATE.out.stats       // channel: [ meta, path(*.aln_stats.tsv) ]
+    merged_counts   = OSMOTOOL_MERGE_COUNTS.out.matrix  // channel: [ mode, path(<mode>_gene_counts.tsv) ]
+    versions        = ch_versions                       // channel: [ path(versions.yml) ]
 
 }
 

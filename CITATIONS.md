@@ -30,6 +30,10 @@
 
   > Hyatt D, Chen GL, Locascio PF, Land ML, Larimer FW, Hauser LJ. Prodigal: prokaryotic gene recognition and translation initiation site identification. BMC Bioinformatics. 2010 Mar 8;11:119. doi: 10.1186/1471-2105-11-119. PubMed PMID: 20211023.
 
+- [pandas](https://doi.org/10.5281/zenodo.3509134)
+
+  > The pandas development team. pandas-dev/pandas: Pandas. Zenodo. doi: 10.5281/zenodo.3509134.
+
 ## Software packaging/containerisation tools
 
 - [Anaconda](https://anaconda.com)
