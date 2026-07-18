@@ -38,6 +38,26 @@
                 }
             }
         },
+        "osmotool_database_options": {
+            "title": "osmotool database options",
+            "type": "object",
+            "fa_icon": "fas fa-database",
+            "description": "Options for the osmo_refdb reference database used by osmotool.",
+            "properties": {
+                "osmo_db": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "Path to an already-unpacked osmo_refdb release directory (e.g. the 'v5/' produced by 'osmotool download-db'). If not provided, the pipeline downloads it automatically.",
+                    "fa_icon": "fas fa-folder-open"
+                },
+                "osmo_db_release": {
+                    "type": "string",
+                    "default": "latest",
+                    "description": "osmo_refdb release to download from Zenodo when --osmo_db is not provided, or 'latest'.",
+                    "fa_icon": "fas fa-tag"
+                }
+            }
+        },
         "institutional_config_options": {
             "title": "Institutional config options",
             "type": "object",
@@ -166,6 +186,9 @@
     "allOf": [
         {
             "$ref": "#/$defs/input_output_options"
+        },
+        {
+            "$ref": "#/$defs/osmotool_database_options"
         },
         {
             "$ref": "#/$defs/institutional_config_options"

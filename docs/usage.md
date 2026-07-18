@@ -4,51 +4,55 @@
 
 ## Introduction
 
-<!-- TODO nf-core: Add documentation about anything specific to running your pipeline. For general topics, please point to (and add to) the main nf-core website. -->
+osmoflow screens osmoadaptation genes using [osmotool](https://github.com/barbarahelena/osmotool). Each samplesheet
+row is routed to one of osmotool's two modes based on which columns it provides:
+
+- **FASTQ reads** (`fastq_1`[, `fastq_2`]) → `osmotool profile` (DIAMOND blastx against 6-frame translated reads)
+- **Assembly** (`fasta`) → `osmotool annotate` (Prodigal + DIAMOND/HMMER against called proteins)
+
+The two modes report different, non-comparable units (`rpm` for `profile`, `copies_per_kb` for `annotate`) — see the
+[osmotool README](https://github.com/barbarahelena/osmotool#output) for details.
 
 ## Samplesheet input
 
-You will need to create a samplesheet with information about the samples you would like to analyse before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 3 columns, and a header row as shown in the examples below.
+You will need to create a samplesheet with information about the samples you would like to analyse before running the pipeline.
 
 ```bash
 --input '[path to samplesheet file]'
 ```
 
-### Multiple runs of the same sample
-
-The `sample` identifiers have to be the same when you have re-sequenced the same sample more than once e.g. to increase sequencing depth. The pipeline will concatenate the raw reads before performing any downstream analysis. Below is an example for the same sample sequenced across 3 lanes:
-
-```csv title="samplesheet.csv"
-sample,fastq_1,fastq_2
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
-CONTROL_REP1,AEG588A1_S1_L003_R1_001.fastq.gz,AEG588A1_S1_L003_R2_001.fastq.gz
-CONTROL_REP1,AEG588A1_S1_L004_R1_001.fastq.gz,AEG588A1_S1_L004_R2_001.fastq.gz
-```
-
-### Full samplesheet
-
-The pipeline will auto-detect whether a sample is single- or paired-end using the information provided in the samplesheet. The samplesheet can have as many columns as you desire, however, there is a strict requirement for the first 3 columns to match those defined in the table below.
-
-A final samplesheet file consisting of both single- and paired-end data may look something like the one below. This is for 6 samples, where `TREATMENT_REP3` has been sequenced twice.
+It must be a comma-separated file with a header row and 4 columns. Each row provides **either** `fastq_1`[, `fastq_2`]
+**or** `fasta` — never both, and never neither.
 
 ```csv title="samplesheet.csv"
-sample,fastq_1,fastq_2
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
-CONTROL_REP2,AEG588A2_S2_L002_R1_001.fastq.gz,AEG588A2_S2_L002_R2_001.fastq.gz
-CONTROL_REP3,AEG588A3_S3_L002_R1_001.fastq.gz,AEG588A3_S3_L002_R2_001.fastq.gz
-TREATMENT_REP1,AEG588A4_S4_L003_R1_001.fastq.gz,
-TREATMENT_REP2,AEG588A5_S5_L003_R1_001.fastq.gz,
-TREATMENT_REP3,AEG588A6_S6_L003_R1_001.fastq.gz,
-TREATMENT_REP3,AEG588A6_S6_L004_R1_001.fastq.gz,
+sample,fastq_1,fastq_2,fasta
+SAMPLE_PAIRED_END,reads/sample1_R1.fastq.gz,reads/sample1_R2.fastq.gz,
+SAMPLE_SINGLE_END,reads/sample2.fastq.gz,,
+SAMPLE_ASSEMBLY,,,assemblies/sample3.fasta
 ```
 
-| Column    | Description                                                                                                                                                                            |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sample`  | Custom sample name. This entry will be identical for multiple sequencing libraries/runs from the same sample. Spaces in sample names are automatically converted to underscores (`_`). |
-| `fastq_1` | Full path to FastQ file for Illumina short reads 1. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                             |
-| `fastq_2` | Full path to FastQ file for Illumina short reads 2. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                             |
+| Column    | Description                                                                                                      |
+| --------- | ------------------------------------------------------------------------------------------------------------------ |
+| `sample`  | Custom sample name. Cannot contain spaces.                                                                        |
+| `fastq_1` | Full path to a FASTQ file with reads 1 (single-end reads, or forward reads for paired-end). Must be gzipped, `.fastq.gz`/`.fq.gz`. Routes the sample through `osmotool profile`. |
+| `fastq_2` | Full path to a FASTQ file with reverse reads 2. Only valid alongside `fastq_1`. Omit for single-end data.        |
+| `fasta`   | Full path to an assembly FASTA (`.fasta`/`.fa`/`.fna`, optionally gzipped). Routes the sample through `osmotool annotate`. Mutually exclusive with `fastq_1`/`fastq_2`. |
 
 An [example samplesheet](../assets/samplesheet.csv) has been provided with the pipeline.
+
+## Reference database
+
+`osmotool` needs an unpacked [`osmo_refdb`](https://github.com/barbarahelena/osmo_refdb) release directory. By
+default the pipeline downloads it for you (`OSMOTOOL_DOWNLOAD_DB`, using the `--osmo_db_release` version, `latest` by
+default). If you already have a copy — e.g. from a previous run, or downloaded manually with
+`osmotool download-db` — point the pipeline at it instead to skip the download:
+
+```bash
+--osmo_db /path/to/osmo_refdb/v5
+```
+
+The pipeline checks that `--osmo_db` is a directory containing `osmo_refdb.dmnd` before launching any analysis
+processes, so a misconfigured path fails fast with a clear error rather than partway through a run.
 
 ## Running the pipeline
 
@@ -153,6 +157,8 @@ If `-profile` is not specified, the pipeline will run locally and expect all sof
   - A generic configuration profile to enable [Wave](https://seqera.io/wave/) containers. Use together with one of the above (requires Nextflow ` 24.03.0-edge` or later).
 - `conda`
   - A generic configuration profile to be used with [Conda](https://conda.io/docs/). Please only use Conda as a last resort i.e. when it's not possible to run the pipeline with Docker, Singularity, Podman, Shifter, Charliecloud, or Apptainer.
+- `snellius`
+  - Configuration for the [Snellius](https://www.surf.nl/en/services/snellius-the-national-supercomputer) HPC cluster: submits via SLURM (`-p genoa`) and enables Singularity. Combine with `test`/other profiles as needed, e.g. `-profile snellius`.
 
 ### `-resume`
 

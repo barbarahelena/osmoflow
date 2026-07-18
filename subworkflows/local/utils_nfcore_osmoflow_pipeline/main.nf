@@ -75,26 +75,21 @@ workflow PIPELINE_INITIALISATION {
     )
 
     //
+    // Custom validation for pipeline parameters
+    //
+    validateInputParameters()
+
+    //
     // Create channel from input file provided through params.input
     //
-
+    // Each row is either FASTQ reads (fastq_1[, fastq_2]) for 'osmotool profile'
+    // or an assembly (fasta) for 'osmotool annotate' -- schema_input.json enforces
+    // exactly one of the two is set.
+    //
     channel
         .fromList(samplesheetToList(params.input, "${projectDir}/assets/schema_input.json"))
-        .map {
-            meta, fastq_1, fastq_2 ->
-                if (!fastq_2) {
-                    return [ meta.id, meta + [ single_end:true ], [ fastq_1 ] ]
-                } else {
-                    return [ meta.id, meta + [ single_end:false ], [ fastq_1, fastq_2 ] ]
-                }
-        }
-        .groupTuple()
-        .map { samplesheet ->
-            validateInputSamplesheet(samplesheet)
-        }
-        .map {
-            meta, fastqs ->
-                return [ meta, fastqs.flatten() ]
+        .map { meta, fastq_1, fastq_2, fasta ->
+            validateInputSamplesheet(meta, fastq_1, fastq_2, fasta)
         }
         .set { ch_samplesheet }
 
@@ -152,28 +147,53 @@ workflow PIPELINE_COMPLETION {
 */
 
 //
-// Validate channels from input samplesheet
+// Validate pipeline parameters
 //
-def validateInputSamplesheet(input) {
-    def (metas, fastqs) = input[1..2]
+def validateInputParameters() {
+    if (params.osmo_db) {
+        def db_dir = file(params.osmo_db, checkIfExists: true)
+        if (!db_dir.isDirectory()) {
+            error("--osmo_db must be a directory (an unpacked osmo_refdb release), got a file: ${params.osmo_db}")
+        }
+        if (!db_dir.resolve('osmo_refdb.dmnd').exists()) {
+            error("--osmo_db (${params.osmo_db}) does not contain 'osmo_refdb.dmnd' -- point it at an unpacked osmo_refdb release directory, e.g. the 'v5/' produced by 'osmotool download-db'")
+        }
+        if (params.osmo_db_release != 'latest') {
+            log.warn("Both --osmo_db and --osmo_db_release were provided; --osmo_db_release is ignored since the database will not be downloaded")
+        }
+    }
+}
 
-    // Check that multiple runs of the same sample are of the same datatype i.e. single-end / paired-end
-    def endedness_ok = metas.collect{ meta -> meta.single_end }.unique().size == 1
-    if (!endedness_ok) {
-        error("Please check input samplesheet -> Multiple runs of a sample must be of the same datatype i.e. single-end or paired-end: ${metas[0].id}")
+//
+// Validate a single row from the input samplesheet: exactly one of
+// FASTQ reads (fastq_1[, fastq_2]) or an assembly (fasta) must be set.
+// schema_input.json already enforces this; this is a defence-in-depth
+// check against the one combination the schema cannot express
+// (fastq_2 given alongside fasta, with fastq_1 absent).
+//
+def validateInputSamplesheet(meta, fastq_1, fastq_2, fasta) {
+    if (fasta && fastq_2 && !fastq_1) {
+        error("Please check input samplesheet -> sample '${meta.id}' provides both 'fasta' and 'fastq_2' without 'fastq_1'; a sample must be either FASTQ reads (fastq_1[, fastq_2]) or an assembly (fasta), not both")
     }
 
-    return [ metas[0], fastqs ]
+    if (fastq_1) {
+        def single_end = !fastq_2
+        def reads = single_end ? [ file(fastq_1) ] : [ file(fastq_1), file(fastq_2) ]
+        return [ meta + [ mode: 'profile', single_end: single_end ], reads ]
+    }
+
+    return [ meta + [ mode: 'annotate' ], file(fasta) ]
 }
 //
 // Generate methods description for MultiQC
 //
 def toolCitationText() {
-    // TODO nf-core: Optionally add in-text citation tools to this list.
-    // Can use ternary operators to dynamically construct based conditions, e.g. params["run_xyz"] ? "Tool (Foo et al. 2023)" : "",
-    // Uncomment function in methodsDescriptionText to render in MultiQC report
     def citation_text = [
             "Tools used in the workflow included:",
+            "osmotool (Verhaar BJH),",
+            "DIAMOND (Buchfink et al. 2021),",
+            "HMMER (Eddy 2011),",
+            "Prodigal (Hyatt et al. 2010)",
             "."
         ].join(' ').trim()
 
@@ -181,10 +201,10 @@ def toolCitationText() {
 }
 
 def toolBibliographyText() {
-    // TODO nf-core: Optionally add bibliographic entries to this list.
-    // Can use ternary operators to dynamically construct based conditions, e.g. params["run_xyz"] ? "<li>Author (2023) Pub name, Journal, DOI</li>" : "",
-    // Uncomment function in methodsDescriptionText to render in MultiQC report
     def reference_text = [
+            "<li>Buchfink B, Reuter K, Drost HG. Sensitive protein alignments at tree-of-life scale using DIAMOND. Nat Methods. 2021 Apr;18(4):366-368. doi: 10.1038/s41592-021-01101-x</li>",
+            "<li>Eddy SR. Accelerated Profile HMM Searches. PLoS Comput Biol. 2011 Oct;7(10):e1002195. doi: 10.1371/journal.pcbi.1002195</li>",
+            "<li>Hyatt D, Chen GL, Locascio PF, Land ML, Larimer FW, Hauser LJ. Prodigal: prokaryotic gene recognition and translation initiation site identification. BMC Bioinformatics. 2010 Mar 8;11:119. doi: 10.1186/1471-2105-11-119</li>"
         ].join(' ').trim()
 
     return reference_text

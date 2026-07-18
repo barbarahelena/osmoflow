@@ -1,9 +1,8 @@
 # barbarahelena/osmoflow
 
 [![Open in GitHub Codespaces](https://img.shields.io/badge/Open_In_GitHub_Codespaces-black?labelColor=grey&logo=github)](https://github.com/codespaces/new/barbarahelena/osmoflow)
-[![GitHub Actions CI Status](https://github.com/barbarahelena/osmoflow/actions/workflows/nf-test.yml/badge.svg)](https://github.com/barbarahelena/osmoflow/actions/workflows/nf-test.yml)
-[![GitHub Actions Linting Status](https://github.com/barbarahelena/osmoflow/actions/workflows/linting.yml/badge.svg)](https://github.com/barbarahelena/osmoflow/actions/workflows/linting.yml)[![Cite with Zenodo](http://img.shields.io/badge/DOI-10.5281/zenodo.XXXXXXX-1073c8?labelColor=000000)](https://doi.org/10.5281/zenodo.XXXXXXX)
-[![nf-test](https://img.shields.io/badge/unit_tests-nf--test-337ab7.svg)](https://www.nf-test.com)
+[![GitHub Actions Linting Status](https://github.com/barbarahelena/osmoflow/actions/workflows/linting.yml/badge.svg)](https://github.com/barbarahelena/osmoflow/actions/workflows/linting.yml)
+[![Cite with Zenodo](http://img.shields.io/badge/DOI-10.5281/zenodo.XXXXXXX-1073c8?labelColor=000000)](https://doi.org/10.5281/zenodo.XXXXXXX)
 
 [![Nextflow](https://img.shields.io/badge/version-%E2%89%A525.04.0-green?style=flat&logo=nextflow&logoColor=white&color=%230DC09D&link=https%3A%2F%2Fnextflow.io)](https://www.nextflow.io/)
 [![nf-core template version](https://img.shields.io/badge/nf--core_template-3.5.2-green?style=flat&logo=nfcore&logoColor=white&color=%2324B064&link=https%3A%2F%2Fnf-co.re)](https://github.com/nf-core/tools/releases/tag/3.5.2)
@@ -14,42 +13,36 @@
 
 ## Introduction
 
-**barbarahelena/osmoflow** is a bioinformatics pipeline that ...
+**barbarahelena/osmoflow** screens osmoadaptation genes (ectA/ectB/ectC, betL, kdpA, nhaA) in metagenomic data using
+[osmotool](https://github.com/barbarahelena/osmotool). Depending on what each samplesheet row provides, a sample is
+routed through one of osmotool's two modes: paired/single-end FASTQ reads are screened with `osmotool profile`
+(DIAMOND blastx, optionally cascaded to HMMER), and assembly FASTA files are screened with `osmotool annotate`
+(Prodigal + DIAMOND/HMMER). The `osmo_refdb` reference database is downloaded automatically from Zenodo unless you
+already have a local copy.
 
-<!-- TODO nf-core:
-   Complete this sentence with a 2-3 sentence summary of what types of data the pipeline ingests, a brief overview of the
-   major pipeline sections and the types of output it produces. You're giving an overview to someone new
-   to nf-core here, in 15-20 seconds. For an example, see https://github.com/nf-core/rnaseq/blob/master/README.md#introduction
--->
+The pipeline runs three processes:
 
-<!-- TODO nf-core: Include a figure that guides the user through the major workflow steps. Many nf-core
-     workflows use the "tube map" design for that. See https://nf-co.re/docs/guidelines/graphic_design/workflow_diagrams#examples for examples.   -->
-<!-- TODO nf-core: Fill in short bullet-pointed list of the default steps in the pipeline -->
+1. **`OSMOTOOL_DOWNLOAD_DB`** — downloads and unpacks an `osmo_refdb` release, unless `--osmo_db` points at one already
+2. **`OSMOTOOL_PROFILE`** — runs `osmotool profile` on samplesheet rows with `fastq_1`[, `fastq_2`]
+3. **`OSMOTOOL_ANNOTATE`** — runs `osmotool annotate` on samplesheet rows with `fasta`
 
 ## Usage
 
 > [!NOTE]
-> If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline) with `-profile test` before running the workflow on actual data.
+> If you are new to Nextflow, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline) with `-profile test` before running the workflow on actual data.
 
-<!-- TODO nf-core: Describe the minimum required steps to execute the pipeline, e.g. how to prepare samplesheets.
-     Explain what rows and columns represent. For instance (please edit as appropriate):
-
-First, prepare a samplesheet with your input data that looks as follows:
+First, prepare a samplesheet with your input data. Each row is *either* FASTQ reads *or* an assembly, not both:
 
 `samplesheet.csv`:
 
 ```csv
-sample,fastq_1,fastq_2
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
+sample,fastq_1,fastq_2,fasta
+SAMPLE_PAIRED_END,reads/sample1_R1.fastq.gz,reads/sample1_R2.fastq.gz,
+SAMPLE_SINGLE_END,reads/sample2.fastq.gz,,
+SAMPLE_ASSEMBLY,,,assemblies/sample3.fasta
 ```
 
-Each row represents a fastq file (single-end) or a pair of fastq files (paired end).
-
--->
-
 Now, you can run the pipeline using:
-
-<!-- TODO nf-core: update the following command to include all required parameters for a minimal example -->
 
 ```bash
 nextflow run barbarahelena/osmoflow \
@@ -57,6 +50,9 @@ nextflow run barbarahelena/osmoflow \
    --input samplesheet.csv \
    --outdir <OUTDIR>
 ```
+
+By default, the `osmo_refdb` reference database is downloaded automatically (latest release). To reuse an
+already-downloaded copy instead, pass `--osmo_db /path/to/osmo_refdb/v5`.
 
 > [!WARNING]
 > Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration _**except for parameters**_; see [docs](https://nf-co.re/docs/usage/getting_started/configuration#custom-configuration-files).
@@ -68,10 +64,6 @@ barbarahelena/osmoflow was originally written by barbarahelena.
 We thank the following people for their extensive assistance in the development of this pipeline:
 
 <!-- TODO nf-core: If applicable, make list of people who have also contributed -->
-
-## Contributions and Support
-
-If you would like to contribute to this pipeline, please see the [contributing guidelines](.github/CONTRIBUTING.md).
 
 ## Citations
 

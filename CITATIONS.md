@@ -10,9 +10,25 @@
 
 ## Pipeline tools
 
+- [osmotool](https://github.com/barbarahelena/osmotool)
 
+  > Verhaar BJH. osmotool: screen osmoadaptation genes in metagenomic datasets using DIAMOND and HMMER.
 
+- [osmo_refdb](https://github.com/barbarahelena/osmo_refdb)
 
+  > Verhaar BJH. osmo_refdb: a curated reference database of osmoadaptation gene families. Zenodo. doi: [10.5281/zenodo.21420253](https://doi.org/10.5281/zenodo.21420253).
+
+- [DIAMOND](https://pubmed.ncbi.nlm.nih.gov/33828273/)
+
+  > Buchfink B, Reuter K, Drost HG. Sensitive protein alignments at tree-of-life scale using DIAMOND. Nat Methods. 2021 Apr;18(4):366-368. doi: 10.1038/s41592-021-01101-x. PubMed PMID: 33828273.
+
+- [HMMER](http://hmmer.org/)
+
+  > Eddy SR. Accelerated Profile HMM Searches. PLoS Comput Biol. 2011 Oct;7(10):e1002195. doi: 10.1371/journal.pcbi.1002195.
+
+- [Prodigal](https://pubmed.ncbi.nlm.nih.gov/20211023/)
+
+  > Hyatt D, Chen GL, Locascio PF, Land ML, Larimer FW, Hauser LJ. Prodigal: prokaryotic gene recognition and translation initiation site identification. BMC Bioinformatics. 2010 Mar 8;11:119. doi: 10.1186/1471-2105-11-119. PubMed PMID: 20211023.
 
 ## Software packaging/containerisation tools
 

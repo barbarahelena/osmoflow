@@ -5,18 +5,12 @@ nf_core_version: 3.5.2
 lint:
   files_unchanged:
     - .prettierignore
-    - .prettierignore
-    - .prettierignore
     - CODE_OF_CONDUCT.md
     - assets/nf-core-osmoflow_logo_light.png
     - docs/images/nf-core-osmoflow_logo_light.png
     - docs/images/nf-core-osmoflow_logo_dark.png
-    - .github/ISSUE_TEMPLATE/bug_report.yml
-    - .github/CONTRIBUTING.md
-    - .github/PULL_REQUEST_TEMPLATE.md
     - assets/email_template.txt
     - docs/README.md
-    - .github/CONTRIBUTING.md
     - assets/sendmail_template.txt
   nextflow_config:
     - manifest.name
@@ -30,8 +24,17 @@ lint:
     - docs/images/nf-core-osmoflow_logo_light.png
     - docs/images/nf-core-osmoflow_logo_dark.png
     - .github/ISSUE_TEMPLATE/config.yml
+    - .github/ISSUE_TEMPLATE/bug_report.yml
+    - .github/ISSUE_TEMPLATE/feature_request.yml
+    - .github/CONTRIBUTING.md
+    - .github/PULL_REQUEST_TEMPLATE.md
     - .github/workflows/awstest.yml
     - .github/workflows/awsfulltest.yml
+    - .github/workflows/nf-test.yml
+    - .github/actions/get-shards/action.yml
+    - .github/actions/nf-test/action.yml
+    - nf-test.config
+    - tests/default.nf.test
     - assets/multiqc_config.yml
 
 template:

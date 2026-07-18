@@ -1,0 +1,4 @@
+sample,fastq_1,fastq_2,fasta
+TEST_PAIRED,assets/test/reads_R1.fastq.gz,assets/test/reads_R2.fastq.gz,
+TEST_SINGLE,assets/test/reads_R1.fastq.gz,,
+TEST_ASSEMBLY,,,assets/test/assembly.fasta

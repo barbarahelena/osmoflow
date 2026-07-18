@@ -6,18 +6,53 @@ This document describes the output produced by the pipeline.
 
 The directories listed below will be created in the results directory after the pipeline has finished. All paths are relative to the top-level results directory.
 
-<!-- TODO nf-core: Write this documentation describing your workflow's output -->
-
 ## Pipeline overview
 
 The pipeline is built using [Nextflow](https://www.nextflow.io/) and processes data using the following steps:
 
-
+- [Database](#database) - The `osmo_refdb` reference database (only if downloaded by the pipeline)
+- [Profile](#profile) - `osmotool profile` results for FASTQ-reads samples
+- [Annotate](#annotate) - `osmotool annotate` results for assembly samples
 - [Pipeline information](#pipeline-information) - Report metrics generated during the workflow execution
 
+### Database
 
+<details markdown="1">
+<summary>Output files</summary>
 
+- `database/`
+  - `refdb/<release>/`: the unpacked `osmo_refdb` release, only present when `--osmo_db` was not provided.
 
+</details>
+
+### Profile
+
+<details markdown="1">
+<summary>Output files</summary>
+
+- `profile/<sample>/`
+  - `<sample>.gene_counts.tsv`: per-gene raw counts and RPM (depth-normalised abundance) for each osmoadaptation gene family.
+  - `<sample>.aln_stats.tsv`: alignment summary statistics.
+
+</details>
+
+Produced by `osmotool profile` (DIAMOND blastx) for samplesheet rows with `fastq_1`[, `fastq_2`].
+
+### Annotate
+
+<details markdown="1">
+<summary>Output files</summary>
+
+- `annotate/<sample>/`
+  - `<sample>.gene_counts.tsv`: per-gene raw counts and `copies_per_kb` (gene-copy-number statistic) for each osmoadaptation gene family.
+  - `<sample>.aln_stats.tsv`: alignment summary statistics.
+
+</details>
+
+Produced by `osmotool annotate` (Prodigal + DIAMOND/HMMER) for samplesheet rows with `fasta`.
+
+> [!NOTE]
+> `profile` (RPM) and `annotate` (`copies_per_kb`) values measure different things and are not directly comparable — see the [osmotool README](https://github.com/barbarahelena/osmotool#output).
 
 ### Pipeline information
 
