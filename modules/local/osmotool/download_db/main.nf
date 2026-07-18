@@ -1,7 +1,7 @@
 process OSMOTOOL_DOWNLOAD_DB {
     label 'process_low'
 
-    container "barbarahelena/osmotool:0.1.0"
+    container "docker://barbarahelena/osmotool:0.1.0"
 
     input:
     val release
