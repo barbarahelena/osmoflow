@@ -11,6 +11,8 @@ process OSMOTOOL_ANNOTATE {
     output:
     tuple val(meta), path("*.gene_counts.tsv"), emit: counts
     tuple val(meta), path("*.aln_stats.tsv"),   emit: stats
+    tuple val(meta), path("*.systems.tsv"),     emit: systems
+
     path "versions.yml",                        emit: versions
 
     when:
