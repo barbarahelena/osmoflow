@@ -10,8 +10,9 @@ include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_osmo
 include { OSMOTOOL_DOWNLOAD_DB } from '../modules/local/osmotool/download_db'
 include { OSMOTOOL_PROFILE     } from '../modules/local/osmotool/profile'
 include { OSMOTOOL_ANNOTATE    } from '../modules/local/osmotool/annotate'
-include { OSMOTOOL_MERGE_COUNTS  } from '../modules/local/osmotool/merge_counts'
-include { OSMOTOOL_MERGE_SYSTEMS } from '../modules/local/osmotool/merge_systems'
+include { OSMOTOOL_MERGE_COUNTS           } from '../modules/local/osmotool/merge_counts'
+include { OSMOTOOL_MERGE_SYSTEMS          } from '../modules/local/osmotool/merge_systems'
+include { OSMOTOOL_MERGE_GENE_COORDINATES } from '../modules/local/osmotool/merge_gene_coordinates'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -95,6 +96,19 @@ workflow OSMOFLOW {
     ch_versions = ch_versions.mix(OSMOTOOL_MERGE_SYSTEMS.out.versions)
 
     //
+    // MODULE: Merge each genome/bin's *.gene_coordinates.tsv into one long-format table.
+    // Only produced for the 'annotate' mode, and only runs when at least one bin has a gene_coordinates.tsv.
+    //
+    OSMOTOOL_ANNOTATE.out.coordinates
+        .map { meta, coordinates -> coordinates }
+        .collect()
+        .filter { coordinates -> coordinates }
+        .set { ch_annotate_coordinates }
+
+    OSMOTOOL_MERGE_GENE_COORDINATES ( ch_annotate_coordinates )
+    ch_versions = ch_versions.mix(OSMOTOOL_MERGE_GENE_COORDINATES.out.versions)
+
+    //
     // Collate and save software versions
     //
     def topic_versions = Channel.topic("versions")
@@ -125,14 +139,15 @@ workflow OSMOFLOW {
 
 
     emit:
-    profile_counts   = OSMOTOOL_PROFILE.out.counts        // channel: [ meta, path(*.gene_counts.tsv) ]
-    profile_stats    = OSMOTOOL_PROFILE.out.stats         // channel: [ meta, path(*.aln_stats.tsv) ]
-    annotate_counts  = OSMOTOOL_ANNOTATE.out.counts       // channel: [ meta, path(*.gene_counts.tsv) ]
-    annotate_stats   = OSMOTOOL_ANNOTATE.out.stats        // channel: [ meta, path(*.aln_stats.tsv) ]
-    annotate_systems = OSMOTOOL_ANNOTATE.out.systems      // channel: [ meta, path(*.systems.tsv) ]
-    merged_counts    = OSMOTOOL_MERGE_COUNTS.out.matrix   // channel: [ mode, path(<mode>_gene_counts.tsv) ]
-    merged_systems   = OSMOTOOL_MERGE_SYSTEMS.out.tsv     // channel: path(merged_systems.tsv)
-    versions         = ch_versions                        // channel: [ path(versions.yml) ]
+    profile_counts     = OSMOTOOL_PROFILE.out.counts               // channel: [ meta, path(*.gene_counts.tsv) ]
+    profile_stats      = OSMOTOOL_PROFILE.out.stats                // channel: [ meta, path(*.aln_stats.tsv) ]
+    annotate_counts    = OSMOTOOL_ANNOTATE.out.counts              // channel: [ meta, path(*.gene_counts.tsv) ]
+    annotate_stats     = OSMOTOOL_ANNOTATE.out.stats               // channel: [ meta, path(*.aln_stats.tsv) ]
+    annotate_systems   = OSMOTOOL_ANNOTATE.out.systems             // channel: [ meta, path(*.systems.tsv) ]
+    merged_counts      = OSMOTOOL_MERGE_COUNTS.out.matrix          // channel: [ mode, path(<mode>_gene_counts.tsv) ]
+    merged_systems     = OSMOTOOL_MERGE_SYSTEMS.out.tsv            // channel: path(merged_systems.tsv)
+    merged_coordinates = OSMOTOOL_MERGE_GENE_COORDINATES.out.tsv   // channel: path(merged_gene_coordinates.tsv)
+    versions           = ch_versions                               // channel: [ path(versions.yml) ]
 
 }
 
