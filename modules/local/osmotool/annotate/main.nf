@@ -9,11 +9,11 @@ process OSMOTOOL_ANNOTATE {
     path osmo_refdb
 
     output:
-    tuple val(meta), path("*.gene_counts.tsv"), emit: counts
-    tuple val(meta), path("*.aln_stats.tsv"),   emit: stats
-    tuple val(meta), path("*.systems.tsv"),     emit: systems
-
-    path "versions.yml",                        emit: versions
+    tuple val(meta), path("*.gene_counts.tsv"),      emit: counts
+    tuple val(meta), path("*.aln_stats.tsv"),        emit: stats
+    tuple val(meta), path("*.systems.tsv"),          emit: systems
+    tuple val(meta), path("*.gene_coordinates.tsv"), emit: coordinates
+    path "versions.yml",                             emit: versions
 
     when:
     task.ext.when == null || task.ext.when
