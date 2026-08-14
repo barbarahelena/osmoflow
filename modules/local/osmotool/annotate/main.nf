@@ -2,7 +2,7 @@ process OSMOTOOL_ANNOTATE {
     tag "$meta.id"
     label 'process_medium'
 
-    container "docker://barbarahelena/osmotool:0.4.0"
+    container "docker://barbarahelena/osmotool:0.5.0"
 
     input:
     tuple val(meta), path(fasta)
