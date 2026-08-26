@@ -2,7 +2,7 @@ process OSMOTOOL_PROFILE {
     tag "$meta.id"
     label 'process_medium'
 
-    container "docker://barbarahelena/osmotool:0.5.0"
+    container "docker://barbarahelena/osmotool:0.6.0"
 
     input:
     tuple val(meta), path(reads)
