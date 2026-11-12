@@ -156,7 +156,7 @@ def validateInputParameters() {
             error("--osmo_db must be a directory (an unpacked osmo_refdb release), got a file: ${params.osmo_db}")
         }
         if (!db_dir.resolve('osmo_refdb.dmnd').exists()) {
-            error("--osmo_db (${params.osmo_db}) does not contain 'osmo_refdb.dmnd' -- point it at an unpacked osmo_refdb release directory, e.g. the 'v5/' produced by 'osmotool download-db'")
+            error("--osmo_db (${params.osmo_db}) does not contain 'osmo_refdb.dmnd' -- point it at an unpacked osmo_refdb release directory, e.g. the 'v9/' produced by 'osmotool download-db'")
         }
         if (params.osmo_db_release != 'latest') {
             log.warn("Both --osmo_db and --osmo_db_release were provided; --osmo_db_release is ignored since the database will not be downloaded")

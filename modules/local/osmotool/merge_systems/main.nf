@@ -2,7 +2,7 @@ process OSMOTOOL_MERGE_SYSTEMS {
     tag "systems"
     label 'process_single'
 
-    container "docker://barbarahelena/osmotool:0.6.0"
+    container "docker://barbarahelena/osmotool:0.8.0"
 
     input:
     path systems
