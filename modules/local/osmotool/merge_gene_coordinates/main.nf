@@ -2,7 +2,7 @@ process OSMOTOOL_MERGE_GENE_COORDINATES {
     tag "gene_coordinates"
     label 'process_single'
 
-    container "docker://barbarahelena/osmotool:0.6.0"
+    container "docker://barbarahelena/osmotool:0.8.0"
 
     input:
     path coordinates

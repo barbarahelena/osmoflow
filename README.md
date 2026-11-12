@@ -54,7 +54,7 @@ nextflow run barbarahelena/osmoflow \
 ```
 
 By default, the `osmo_refdb` reference database is downloaded automatically (latest release). To reuse an
-already-downloaded copy instead, pass `--osmo_db /path/to/osmo_refdb/v5`.
+already-downloaded copy instead, pass `--osmo_db /path/to/osmo_refdb/v9`.
 
 > [!WARNING]
 > Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration _**except for parameters**_; see [docs](https://nf-co.re/docs/usage/getting_started/configuration#custom-configuration-files).

@@ -48,7 +48,7 @@ default). If you already have a copy — e.g. from a previous run, or downloaded
 `osmotool download-db` — point the pipeline at it instead to skip the download:
 
 ```bash
---osmo_db /path/to/osmo_refdb/v5
+--osmo_db /path/to/osmo_refdb/v9
 ```
 
 The pipeline checks that `--osmo_db` is a directory containing `osmo_refdb.dmnd` before launching any analysis
