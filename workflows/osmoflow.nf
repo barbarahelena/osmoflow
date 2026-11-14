@@ -63,7 +63,7 @@ workflow OSMOFLOW {
     ch_versions = ch_versions.mix(OSMOTOOL_ANNOTATE.out.versions)
 
     //
-    // MODULE: Merge each mode's per-sample gene_counts.tsv into one gene x sample matrix.
+    // MODULE: Merge each mode's per-sample gene_counts.tsv into gene x sample matrices (one per value column).
     // profile (RPM) and annotate (copies_per_kb) are never merged together -- see docs/output.md.
     // Only runs when the corresponding mode has at least one sample.
     //
@@ -144,7 +144,7 @@ workflow OSMOFLOW {
     annotate_counts    = OSMOTOOL_ANNOTATE.out.counts              // channel: [ meta, path(*.gene_counts.tsv) ]
     annotate_stats     = OSMOTOOL_ANNOTATE.out.stats               // channel: [ meta, path(*.aln_stats.tsv) ]
     annotate_systems   = OSMOTOOL_ANNOTATE.out.systems             // channel: [ meta, path(*.systems.tsv) ]
-    merged_counts      = OSMOTOOL_MERGE_COUNTS.out.matrix          // channel: [ mode, path(<mode>_gene_counts.tsv) ]
+    merged_counts      = OSMOTOOL_MERGE_COUNTS.out.matrix          // channel: [ mode, [ path(<mode>_<column>.tsv), ... ] ]
     merged_systems     = OSMOTOOL_MERGE_SYSTEMS.out.tsv            // channel: path(merged_systems.tsv)
     merged_coordinates = OSMOTOOL_MERGE_GENE_COORDINATES.out.tsv   // channel: path(merged_gene_coordinates.tsv)
     versions           = ch_versions                               // channel: [ path(versions.yml) ]

@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Merge per-sample osmotool *.gene_counts.tsv files into one gene x sample matrix.
+"""Merge per-sample osmotool *.gene_counts.tsv files into gene x sample matrices.
 
-Each input file has two leading '#'-prefixed metadata lines, then a tab-separated
-header row (gene, raw_count, <value_col>) where <value_col> is 'rpm' (profile
-mode) or 'copies_per_kb' (annotate mode). Only the third column is merged here --
-profile and annotate outputs must not be passed together, since their values
+Each input file has '#'-prefixed metadata lines, then a tab-separated header row
+starting with 'gene' followed by one or more value columns, e.g.
+  profile:  gene, raw_count, RPM, copies_per_genome
+  annotate: gene, raw_count, copies_per_kb
+Every value column is merged into its own matrix, written as
+<mode>_<column>.tsv (column name lowercased), e.g. profile_rpm.tsv.
+Profile and annotate outputs must not be passed together, since their values
 are not comparable.
 
 Nextflow's `template` mechanism rewrites backslash escapes (e.g. \\n, \\t) in
@@ -25,12 +28,11 @@ mode = "$mode"
 counts = "$counts".split()
 
 
-def read_gene_counts(path: Path) -> pd.Series:
+def read_gene_counts(path: Path) -> pd.DataFrame:
     with open(path) as fh:
         lines = [line for line in fh if not line.startswith("#")]
     df = pd.read_csv(StringIO("".join(lines)), sep="\t")
-    value_col = df.columns[2]
-    return df.set_index("gene")[value_col]
+    return df.set_index("gene")
 
 
 def sample_name(path: Path) -> str:
@@ -38,16 +40,25 @@ def sample_name(path: Path) -> str:
     return name[: -len(SUFFIX)] if name.endswith(SUFFIX) else path.stem
 
 
-columns = {}
+tables = {}
 for raw_path in counts:
     path = Path(raw_path)
-    sample = sample_name(path)
-    columns[sample] = read_gene_counts(path)
+    tables[sample_name(path)] = read_gene_counts(path)
 
-matrix = pd.DataFrame(columns)
-matrix = matrix.reindex(sorted(matrix.index), columns=sorted(matrix.columns))
-matrix.index.name = "gene"
-matrix.to_csv(f"{mode}_gene_counts.tsv", sep="\t")
+# Value columns in the order they appear in the first file; every file of the
+# same mode should share the same header.
+value_cols = list(next(iter(tables.values())).columns)
+for sample, df in tables.items():
+    if list(df.columns) != value_cols:
+        raise SystemExit(
+            f"Column mismatch in sample '{sample}': {list(df.columns)} != {value_cols}"
+        )
+
+for col in value_cols:
+    matrix = pd.DataFrame({sample: df[col] for sample, df in tables.items()})
+    matrix = matrix.reindex(sorted(matrix.index), columns=sorted(matrix.columns))
+    matrix.index.name = "gene"
+    matrix.to_csv(f"{mode}_{col.lower()}.tsv", sep="\t")
 
 with open("versions.yml", "w") as fh:
     print('"$task.process":', file=fh)
