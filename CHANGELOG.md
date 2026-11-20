@@ -13,13 +13,12 @@ Initial release of barbarahelena/osmoflow, created with the [nf-core](https://nf
 
 ### `Fixed`
 
-- Subsampling (`SEQKIT_SAMPLE`) runs `seqkit sample` in two-pass mode (`-2`): sampling by number no longer holds all reads in memory.
-
 - `SEQKIT_SAMPLE` runs `seqkit sample` in two-pass mode (`-2`), so subsampling by number no longer holds all reads in memory.
 
 ### `Dependencies`
 
-- osmotool container 0.8.0 → 0.9.1. With an `osmo_refdb` release that ships a gene catalog, `osmotool profile` adds `catalog_count`, `catalog_ambiguous` and `translated_count` columns, merged into `profile_catalog_count.tsv`, `profile_catalog_ambiguous.tsv` and `profile_translated_count.tsv`.
+- osmotool container 0.8.0 → 0.9.2. With an `osmo_refdb` release that ships a gene catalog, `osmotool profile` adds `catalog_count`, `catalog_ambiguous` and `translated_count` columns, merged into `profile_catalog_count.tsv`, `profile_catalog_ambiguous.tsv` and `profile_translated_count.tsv`.
+- osmotool 0.9.2 counts `profile` in fragments for both read layouts: RPM is per million fragments (read pairs, or single-end reads), so paired-end RPM is 2× what earlier versions gave and now comparable to single-end; single-end RPM and `copies_per_genome` are unchanged. The `gene_counts.tsv` header lines and `aln_stats.tsv` keys are renamed (`total_reads` → `total_fragments`, ...).
 
 ### `Deprecated`
 

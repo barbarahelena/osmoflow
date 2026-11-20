@@ -4,7 +4,7 @@ process OSMOTOOL_PROFILE {
     tag id
     label 'process_medium'
 
-    container "docker://barbarahelena/osmotool:0.9.1"
+    container "docker://barbarahelena/osmotool:0.9.2"
 
     input:
     record(id: String, single_end: Boolean, fastq: List<Path>)

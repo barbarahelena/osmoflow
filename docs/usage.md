@@ -88,7 +88,7 @@ FASTQ samples can be preprocessed before `osmotool profile`. Every step is **off
 | `--fastp` | Quality filtering and adapter trimming with fastp (defaults in `conf/modules.config`, override with `ext.args`) |
 | `--host_bowtie2_index <dir>` or `--host_fasta <genome.fa>` | Host (e.g. human) read removal with Bowtie2; the index is built from the fasta when no index is given |
 | `--perform_runmerging` | Merge the runs of a sample (rows with the same `sample` name), see [Run merging](#run-merging) |
-| `--subsamplelevel <n>` | Subsample to `n` reads (pairs) per sample with seqkit; smaller samples are kept as they are |
+| `--subsamplelevel <n>` | Subsample to `n` reads (pairs) per sample with seqkit; smaller samples are kept as they are. A paired-end sample keeps `n` pairs, the same number of fragments as `n` single-end reads, which is the unit osmotool's counts and RPM use |
 
 ```bash
 nextflow run barbarahelena/osmoflow --input samplesheet.csv --outdir results -profile singularity \\

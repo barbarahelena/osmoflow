@@ -43,7 +43,7 @@ The preprocessed reads themselves (trimmed, host-filtered, merged, subsampled) a
   - `<sample>[_<run_accession>].bowtie2.log`: Bowtie2 alignment summary (the share of reads that mapped to the host).
   - `<sample>[_<run_accession>].stats`: `samtools stats` of the alignment to the host.
 - `readcounts/` (`--readcounts`)
-  - `readcounts.csv`: columns `sample`, `stage`, `reads`, with a `raw` row (the reads in the samplesheet's FASTQ files, all runs added up) and a `final` row (the reads that went into `osmotool profile`) per sample. Reads are counted in the first file, so for paired-end data these are read pairs.
+  - `readcounts.csv`: columns `sample`, `stage`, `reads`, with a `raw` row (the reads in the samplesheet's FASTQ files, all runs added up) and a `final` row (the reads that went into `osmotool profile`) per sample. Reads are counted in the first file, so for paired-end data these are read pairs: the same fragments that osmotool's RPM is per million of (`# total_fragments` in `gene_counts.tsv`).
 
 </details>
 
@@ -53,8 +53,8 @@ The preprocessed reads themselves (trimmed, host-filtered, merged, subsampled) a
 <summary>Output files</summary>
 
 - `profile/<sample>/`
-  - `<sample>.gene_counts.tsv`: per-gene `raw_count`, `RPM` (depth-normalised abundance) and `copies_per_genome` for each osmoadaptation gene family. When the `osmo_refdb` release ships a gene catalog (osmo_refdb v10+), reads are first assigned by nucleotide matching against the catalog, and the table also has `catalog_count` (reads assigned by the catalog), `catalog_ambiguous` (reads with valid placements on several families, split equally over them and not in `raw_count`) and `translated_count` (reads counted by the translated DIAMOND search); `raw_count` is `catalog_count + translated_count`. See the [osmotool README](https://github.com/barbarahelena/osmotool#gene-catalog-profile---catalog).
-  - `<sample>.aln_stats.tsv`: alignment summary statistics.
+  - `<sample>.gene_counts.tsv`: per-gene `raw_count`, `RPM` (depth-normalised abundance) and `copies_per_genome` for each osmoadaptation gene family. Counts are in fragments, a read pair (each mate weighs 0.5) or a single-end read, and RPM is per million fragments (`# total_fragments` in the header), so paired-end and single-end samples give comparable values. When the `osmo_refdb` release ships a gene catalog (osmo_refdb v10+), reads are first assigned by nucleotide matching against the catalog, and the table also has `catalog_count` (reads assigned by the catalog), `catalog_ambiguous` (reads with valid placements on several families, split equally over them and not in `raw_count`) and `translated_count` (reads counted by the translated DIAMOND search); `raw_count` is `catalog_count + translated_count`. See the [osmotool README](https://github.com/barbarahelena/osmotool#gene-catalog-profile---catalog).
+  - `<sample>.aln_stats.tsv`: alignment summary statistics (`total_fragments`, `fragments_assigned`, `pct_fragments_assigned`, ...).
 - `profile/profile_<column>.tsv`, e.g. `profile_raw_count.tsv`, `profile_rpm.tsv`, `profile_copies_per_genome.tsv` and, with a catalog, `profile_catalog_count.tsv`, `profile_catalog_ambiguous.tsv`, `profile_translated_count.tsv`
   - Merged gene x sample matrices, one per value column: one row per gene, one column per profiled sample. Only produced when at least one sample was profiled.
 
