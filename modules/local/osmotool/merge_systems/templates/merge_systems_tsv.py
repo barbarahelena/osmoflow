@@ -18,7 +18,7 @@ from pathlib import Path
 SUFFIX = ".systems.tsv"
 
 # Interpolated by Nextflow from the process' `systems` input.
-systems = "$systems".split()
+systems = "${systems.join(' ')}".split()
 
 
 def bin_id(path: Path) -> str:
@@ -39,6 +39,6 @@ with open("merged_systems.tsv", "w", newline="") as out_f:
             for row in reader:
                 writer.writerow({"bin_id": bin_id(path), **row})
 
-with open("versions.yml", "w") as fh:
-    print('"$task.process":', file=fh)
-    print(f"    python: {platform.python_version()}", file=fh)
+# Version for the "versions" topic (eval() outputs only work in bash scripts)
+with open("python_version.txt", "w") as fh:
+    print(platform.python_version(), file=fh)

@@ -1,14 +1,18 @@
+nextflow.enable.types = true
+
 process BOWTIE2_BUILD {
-    tag "$fasta.name"
+    tag fasta.name
     label 'process_high'
     label 'bowtie2'
     storeDir 'db'
 
     input:
-    path fasta
+    fasta: Path
 
     output:
-    path "bowtie2", emit: index
+    file('bowtie2')   // directory with the *.bt2 index files
+
+    // No versions topic: eval() fails for storeDir tasks taken from the store. BOWTIE2_FILTERHOST reports bowtie2.
 
     script:
     def args = task.ext.args ?: ''

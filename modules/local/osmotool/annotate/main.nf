@@ -1,26 +1,30 @@
+nextflow.enable.types = true
+
 process OSMOTOOL_ANNOTATE {
-    tag "$meta.id"
+    tag id
     label 'process_medium'
 
     container "docker://barbarahelena/osmotool:0.8.0"
 
     input:
-    tuple val(meta), path(fasta)
-    path osmo_refdb
+    record(id: String, fasta: Path)
+    osmo_refdb: Path
 
     output:
-    tuple val(meta), path("*.gene_counts.tsv"),      emit: counts
-    tuple val(meta), path("*.aln_stats.tsv"),        emit: stats
-    tuple val(meta), path("*.systems.tsv"),          emit: systems
-    tuple val(meta), path("*.gene_coordinates.tsv"), emit: coordinates
-    path "versions.yml",                             emit: versions
+    record(
+        id: id,
+        counts: file('*.gene_counts.tsv'),
+        stats: file('*.aln_stats.tsv'),
+        systems: file('*.systems.tsv', optional: true),
+        coordinates: file('*.gene_coordinates.tsv', optional: true)
+    )
 
-    when:
-    task.ext.when == null || task.ext.when
+    topic:
+    tuple(task.process, 'osmotool', eval('osmotool --version 2>&1 | sed "s/^osmotool //"')) >> 'versions'
 
     script:
-    def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def args   = task.ext.args ?: ''
+    def prefix = task.ext.prefix ?: id
     """
     osmotool annotate \\
         ${osmo_refdb} \\
@@ -28,22 +32,12 @@ process OSMOTOOL_ANNOTATE {
         --out_prefix ${prefix} \\
         --threads ${task.cpus} \\
         ${args}
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        osmotool: \$(osmotool --version 2>&1)
-    END_VERSIONS
     """
 
     stub:
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: id
     """
     touch ${prefix}.gene_counts.tsv
     touch ${prefix}.aln_stats.tsv
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        osmotool: stub
-    END_VERSIONS
     """
 }

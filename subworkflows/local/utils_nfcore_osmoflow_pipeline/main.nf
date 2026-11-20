@@ -64,7 +64,8 @@ workflow PIPELINE_INITIALISATION {
         show_hidden,
         "",
         "",
-        command
+        command,
+        null
     )
 
     //
@@ -80,22 +81,31 @@ workflow PIPELINE_INITIALISATION {
     validateInputParameters()
 
     //
-    // Create channel from input file provided through params.input
+    // Create channels from input file provided through params.input
     //
     // Each row is either FASTQ reads (fastq_1[, fastq_2]) for 'osmotool profile'
     // or an assembly (fasta) for 'osmotool annotate' -- schema_input.json enforces
-    // exactly one of the two is set.
+    // exactly one of the two is set. Reads and assemblies go to separate channels
+    // of Reads / Assembly records (see subworkflows/local/types.nf).
     //
-    channel
+    def ch_rows = channel
         .fromList(samplesheetToList(params.input, "${projectDir}/assets/schema_input.json"))
         .map { meta, fastq_1, fastq_2, fasta ->
             validateInputSamplesheet(meta, fastq_1, fastq_2, fasta)
         }
-        .set { ch_samplesheet }
+
+    def ch_reads = ch_rows
+        .filter { row -> row.fastq }
+        .map { row -> record(id: row.id, single_end: row.single_end, fastq: row.fastq) }
+
+    def ch_assemblies = ch_rows
+        .filter { row -> row.fasta }
+        .map { row -> record(id: row.id, fasta: row.fasta) }
 
     emit:
-    samplesheet = ch_samplesheet
-    versions    = ch_versions
+    reads      = ch_reads
+    assemblies = ch_assemblies
+    versions   = ch_versions
 }
 
 /*
@@ -114,7 +124,7 @@ workflow PIPELINE_COMPLETION {
     monochrome_logs // boolean: Disable ANSI colour codes in log output
 
     main:
-    summary_params = paramsSummaryMap(workflow, parameters_schema: "nextflow_schema.json")
+    def summary_params = paramsSummaryMap()
 
     //
     // Completion email and summary
@@ -179,10 +189,10 @@ def validateInputSamplesheet(meta, fastq_1, fastq_2, fasta) {
     if (fastq_1) {
         def single_end = !fastq_2
         def reads = single_end ? [ file(fastq_1) ] : [ file(fastq_1), file(fastq_2) ]
-        return [ meta + [ mode: 'profile', single_end: single_end ], reads ]
+        return [ id: meta.id as String, single_end: single_end, fastq: reads, fasta: null ]
     }
 
-    return [ meta + [ mode: 'annotate' ], file(fasta) ]
+    return [ id: meta.id as String, single_end: null, fastq: null, fasta: file(fasta) ]
 }
 //
 // Generate methods description for MultiQC

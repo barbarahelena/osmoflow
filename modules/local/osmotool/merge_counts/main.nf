@@ -1,29 +1,29 @@
+nextflow.enable.types = true
+
 process OSMOTOOL_MERGE_COUNTS {
-    tag "$mode"
+    tag mode
     label 'process_single'
 
     container "docker://barbarahelena/osmotool:0.8.0"
 
     input:
-    tuple val(mode), path(counts)
+    record(mode: String, counts: List<Path>)   // mode: 'profile' or 'annotate', never mixed
 
     output:
-    tuple val(mode), path("${mode}_*.tsv"), emit: matrix
-    path "versions.yml",                              emit: versions
+    record(
+        mode: mode,
+        matrix: files("${mode}_*.tsv").toSorted { a, b -> a.name <=> b.name }
+    )
 
-    when:
-    task.ext.when == null || task.ext.when
+    topic:
+    tuple(task.process, 'pandas', file('pandas_version.txt')) >> 'versions'
 
     script:
     template 'merge_gene_counts.py'
 
     stub:
     """
+    echo stub > pandas_version.txt
     touch ${mode}_raw_count.tsv
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        pandas: stub
-    END_VERSIONS
     """
 }

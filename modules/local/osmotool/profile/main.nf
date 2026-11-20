@@ -1,25 +1,29 @@
+nextflow.enable.types = true
+
 process OSMOTOOL_PROFILE {
-    tag "$meta.id"
+    tag id
     label 'process_medium'
 
     container "docker://barbarahelena/osmotool:0.8.0"
 
     input:
-    tuple val(meta), path(reads)
-    path osmo_refdb
+    record(id: String, single_end: Boolean, fastq: List<Path>)
+    osmo_refdb: Path
 
     output:
-    tuple val(meta), path("*.gene_counts.tsv"), emit: counts
-    tuple val(meta), path("*.aln_stats.tsv"),   emit: stats
-    path "versions.yml",                        emit: versions
+    record(
+        id: id,
+        counts: file('*.gene_counts.tsv'),
+        stats: file('*.aln_stats.tsv')
+    )
 
-    when:
-    task.ext.when == null || task.ext.when
+    topic:
+    tuple(task.process, 'osmotool', eval('osmotool --version 2>&1 | sed "s/^osmotool //"')) >> 'versions'
 
     script:
-    def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
-    def reads_args = meta.single_end ? "--singles ${reads[0]}" : "-1 ${reads[0]} -2 ${reads[1]}"
+    def args       = task.ext.args ?: ''
+    def prefix     = task.ext.prefix ?: id
+    def reads_args = single_end ? "--singles ${fastq[0]}" : "-1 ${fastq[0]} -2 ${fastq[1]}"
     """
     osmotool profile \\
         ${osmo_refdb} \\
@@ -27,22 +31,12 @@ process OSMOTOOL_PROFILE {
         --out_prefix ${prefix} \\
         --threads ${task.cpus} \\
         ${args}
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        osmotool: \$(osmotool --version 2>&1)
-    END_VERSIONS
     """
 
     stub:
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: id
     """
     touch ${prefix}.gene_counts.tsv
     touch ${prefix}.aln_stats.tsv
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        osmotool: stub
-    END_VERSIONS
     """
 }
