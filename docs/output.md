@@ -43,7 +43,7 @@ The preprocessed reads themselves (trimmed, host-filtered, merged, subsampled) a
   - `<sample>[_<run_accession>].bowtie2.log`: Bowtie2 alignment summary (the share of reads that mapped to the host).
   - `<sample>[_<run_accession>].stats`: `samtools stats` of the alignment to the host.
 - `readcounts/` (`--readcounts`)
-  - `readcounts.csv`: columns `sample`, `stage`, `reads`, with a `raw` row (the reads in the samplesheet's FASTQ files, all runs added up) and a `final` row (the reads that went into `osmotool profile`) per sample. Reads are counted in the first file, so for paired-end data these are read pairs: the same fragments that osmotool's RPM is per million of (`# total_fragments` in `gene_counts.tsv`).
+  - `readcounts.csv`: columns `sample`, `stage`, `reads`, with a `raw` row (the reads in the samplesheet's FASTQ files, all runs added up) and a `final` row (the reads that went into `osmotool profile`) per sample. The counts come from the preprocessing steps' own reports (fastp's JSON, Bowtie2's log, subsampling), counting R1 only, so for paired-end data these are read pairs: the same fragments that osmotool's RPM is per million of (`# total_fragments` in `gene_counts.tsv`).
 
 </details>
 

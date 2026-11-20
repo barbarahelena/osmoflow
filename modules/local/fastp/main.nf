@@ -44,6 +44,7 @@ process FASTP {
     def prefix      = task.ext.prefix ?: (run_accession ? "${id}_${run_accession}" : id)
     def touch_reads = single_end ? "${prefix}.fastp.fastq.gz" : "${prefix}_1.fastp.fastq.gz ${prefix}_2.fastp.fastq.gz"
     """
-    touch ${touch_reads} ${prefix}.fastp.json ${prefix}.fastp.html ${prefix}.fastp.log
+    touch ${touch_reads} ${prefix}.fastp.html ${prefix}.fastp.log
+    echo '{"read1_before_filtering": {"total_reads": 0}, "read1_after_filtering": {"total_reads": 0}}' > ${prefix}.fastp.json
     """
 }

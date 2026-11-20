@@ -7,7 +7,7 @@ process OSMOTOOL_PROFILE {
     container "docker://barbarahelena/osmotool:0.9.2"
 
     input:
-    record(id: String, single_end: Boolean, fastq: List<Path>)
+    record(id: String, single_end: Boolean, fastq: List<Path>, read_count: Long?)   // read_count: pairs for paired-end
     osmo_refdb: Path
 
     output:
@@ -24,10 +24,13 @@ process OSMOTOOL_PROFILE {
     def args       = task.ext.args ?: ''
     def prefix     = task.ext.prefix ?: id
     def reads_args = single_end ? "--singles ${fastq[0]}" : "-1 ${fastq[0]} -2 ${fastq[1]}"
+    // The read count from preprocessing: osmotool then skips its own counting pass over the reads
+    def total_args = read_count != null ? "--total_fragments ${read_count}" : ''
     """
     osmotool profile \\
         ${osmo_refdb} \\
         ${reads_args} \\
+        ${total_args} \\
         --out_prefix ${prefix} \\
         --threads ${task.cpus} \\
         ${args}

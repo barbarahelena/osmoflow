@@ -84,11 +84,11 @@ FASTQ samples can be preprocessed before `osmotool profile`. Every step is **off
 
 | Parameter | Step |
 | --- | --- |
-| `--readcounts` | Table of read counts per sample before (`raw`) and after (`final`) preprocessing: `readcounts/readcounts.csv` |
+| `--readcounts` | Table of read counts per sample before (`raw`) and after (`final`) preprocessing: `readcounts/readcounts.csv`. The counts come from the fastp JSON, the Bowtie2 log and the subsampling step, so no extra job reads the files; only when none of those steps runs does a `READCOUNT` job count the reads |
 | `--fastp` | Quality filtering and adapter trimming with fastp (defaults in `conf/modules.config`, override with `ext.args`) |
 | `--host_bowtie2_index <dir>` or `--host_fasta <genome.fa>` | Host (e.g. human) read removal with Bowtie2; the index is built from the fasta when no index is given |
 | `--perform_runmerging` | Merge the runs of a sample (rows with the same `sample` name), see [Run merging](#run-merging) |
-| `--subsamplelevel <n>` | Subsample to `n` reads (pairs) per sample with seqkit; smaller samples are kept as they are. A paired-end sample keeps `n` pairs, the same number of fragments as `n` single-end reads, which is the unit osmotool's counts and RPM use |
+| `--subsamplelevel <n>` | Subsample to `n` reads (pairs) per sample with seqkit, in one pass over the reads when fastp or host read removal ran (they report the read count; otherwise subsampling counts the reads first); smaller samples are kept as they are. A paired-end sample keeps `n` pairs, the same number of fragments as `n` single-end reads, which is the unit osmotool's counts and RPM use |
 
 ```bash
 nextflow run barbarahelena/osmoflow --input samplesheet.csv --outdir results -profile singularity \\

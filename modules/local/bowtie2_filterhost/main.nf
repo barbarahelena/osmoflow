@@ -58,6 +58,8 @@ process BOWTIE2_FILTERHOST {
     def prefix      = task.ext.prefix ?: (run_accession ? "${id}_${run_accession}" : id)
     def touch_reads = single_end ? "${prefix}_unmapped.fastq.gz" : "${prefix}_unmapped_1.fastq.gz ${prefix}_unmapped_2.fastq.gz"
     """
-    touch ${touch_reads} ${prefix}.bowtie2.log ${prefix}.stats
+    touch ${touch_reads} ${prefix}.stats
+    echo "0 reads; of these:" > ${prefix}.bowtie2.log
+    echo "    0 (0.00%) aligned ${single_end ? '' : 'concordantly '}0 times" >> ${prefix}.bowtie2.log
     """
 }

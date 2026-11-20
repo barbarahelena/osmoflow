@@ -27,12 +27,6 @@
                 "OSMOTOOL_PROFILE": {
                     "osmotool": "0.9.2"
                 },
-                "READCOUNT_FINAL": {
-                    "seqkit": "2.9.0"
-                },
-                "READCOUNT_RAW": {
-                    "seqkit": "2.9.0"
-                },
                 "Workflow": {
                     "barbarahelena/osmoflow": "v0.1.0"
                 }
@@ -92,7 +86,7 @@
                 "readcounts.csv:md5,6b673783f0536e349cf2d84897084d16"
             ]
         ],
-        "timestamp": "2026-11-20T18:18:42.527009928",
+        "timestamp": "2026-11-20T22:23:00.374704739",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.10.0"
@@ -182,12 +176,6 @@
                 "OSMOTOOL_PROFILE": {
                     "osmotool": "0.9.2"
                 },
-                "READCOUNT_FINAL": {
-                    "seqkit": "2.9.0"
-                },
-                "READCOUNT_RAW": {
-                    "seqkit": "2.9.0"
-                },
                 "SEQKIT_SAMPLE": {
                     "seqkit": "2.9.0"
                 },
@@ -240,7 +228,7 @@
                 "readcounts.csv:md5,70fe0d08ca756ab654be4bcb07ed6491"
             ]
         ],
-        "timestamp": "2026-11-20T18:16:13.832067545",
+        "timestamp": "2026-11-20T22:21:31.44062068",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.10.0"
