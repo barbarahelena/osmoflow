@@ -54,6 +54,22 @@ default). If you already have a copy — e.g. from a previous run, or downloaded
 The pipeline checks that `--osmo_db` is a directory containing `osmo_refdb.dmnd` before launching any analysis
 processes, so a misconfigured path fails fast with a clear error rather than partway through a run.
 
+## Optional read preprocessing
+
+FASTQ samples can be preprocessed before `osmotool profile`. Every step is **off by default** and does not affect assemblies. Steps run in this order:
+
+| Parameter | Step |
+| --- | --- |
+| `--readcounts` | Table of read counts per sample before (`raw`) and after (`final`) preprocessing: `readcounts/readcounts.csv` |
+| `--fastp` | Quality filtering and adapter trimming with fastp (defaults in `conf/modules.config`, override with `ext.args`) |
+| `--host_bowtie2_index <dir>` or `--host_fasta <genome.fa>` | Host (e.g. human) read removal with Bowtie2; the index is built from the fasta when no index is given |
+| `--subsamplelevel <n>` | Subsample to `n` reads (pairs) per sample with seqkit; smaller samples are kept as they are |
+
+```bash
+nextflow run barbarahelena/osmoflow --input samplesheet.csv --outdir results -profile singularity \\
+    --fastp --host_bowtie2_index /path/to/GRCh38_bt2 --subsamplelevel 10000000 --readcounts
+```
+
 ## Running the pipeline
 
 The typical command for running the pipeline is as follows:

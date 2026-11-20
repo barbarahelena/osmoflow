@@ -8,7 +8,7 @@ process OSMOTOOL_MERGE_COUNTS {
     tuple val(mode), path(counts)
 
     output:
-    tuple val(mode), path("${mode}_gene_counts.tsv"), emit: matrix
+    tuple val(mode), path("${mode}_*.tsv"), emit: matrix
     path "versions.yml",                              emit: versions
 
     when:
@@ -19,7 +19,7 @@ process OSMOTOOL_MERGE_COUNTS {
 
     stub:
     """
-    touch ${mode}_gene_counts.tsv
+    touch ${mode}_raw_count.tsv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
