@@ -1,18 +1,19 @@
 nextflow.enable.types = true
 
 process BOWTIE2_FILTERHOST {
-    tag id
+    tag run_accession ? "${id}_${run_accession}" : id
     label 'process_high'
     label 'bowtie2'
 
     input:
-    record(id: String, single_end: Boolean, fastq: List<Path>)
+    record(id: String, single_end: Boolean, run_accession: String?, fastq: List<Path>)
     index: Path   // directory with the Bowtie2 index (*.bt2)
 
     output:
     record(
         id: id,
         single_end: single_end,
+        run_accession: run_accession,
         fastq: files('*_unmapped*.fastq.gz').toSorted { a, b -> a.name <=> b.name },
         log: file('*.bowtie2.log'),
         stats: file('*.stats')
@@ -24,7 +25,7 @@ process BOWTIE2_FILTERHOST {
 
     script:
     def args          = task.ext.args ?: ''
-    def prefix        = task.ext.prefix ?: id
+    def prefix        = task.ext.prefix ?: (run_accession ? "${id}_${run_accession}" : id)
     def reads_args    = single_end ? "-U ${fastq[0]}" : "-1 ${fastq[0]} -2 ${fastq[1]}"
     def unmapped_args = single_end ? "--un-gz ${prefix}_unmapped.fastq.gz" : "--un-conc-gz ${prefix}_unmapped.fastq.gz"
     def rename        = single_end ? '' : """
@@ -54,7 +55,7 @@ process BOWTIE2_FILTERHOST {
     """
 
     stub:
-    def prefix      = task.ext.prefix ?: id
+    def prefix      = task.ext.prefix ?: (run_accession ? "${id}_${run_accession}" : id)
     def touch_reads = single_end ? "${prefix}_unmapped.fastq.gz" : "${prefix}_unmapped_1.fastq.gz ${prefix}_unmapped_2.fastq.gz"
     """
     touch ${touch_reads} ${prefix}.bowtie2.log ${prefix}.stats

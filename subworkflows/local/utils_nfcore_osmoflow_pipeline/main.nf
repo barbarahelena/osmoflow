@@ -32,6 +32,7 @@ workflow PIPELINE_INITIALISATION {
     nextflow_cli_args //   array: List of positional nextflow CLI args
     outdir            //  string: The output directory where the results will be saved
     input             //  string: Path to input samplesheet
+    perform_runmerging // boolean: Merge the runs (samplesheet rows with the same sample name) of a FASTQ sample
     help              // boolean: Display help message and exit
     help_full         // boolean: Show the full help message
     show_hidden       // boolean: Show hidden parameters in the help message
@@ -88,15 +89,18 @@ workflow PIPELINE_INITIALISATION {
     // exactly one of the two is set. Reads and assemblies go to separate channels
     // of Reads / Assembly records (see subworkflows/local/types.nf).
     //
+    def rows = samplesheetToList(params.input, "${projectDir}/assets/schema_input.json")
+    validateSampleNames(rows, perform_runmerging)
+
     def ch_rows = channel
-        .fromList(samplesheetToList(params.input, "${projectDir}/assets/schema_input.json"))
+        .fromList(rows)
         .map { meta, fastq_1, fastq_2, fasta ->
             validateInputSamplesheet(meta, fastq_1, fastq_2, fasta, params.input as Path)
         }
 
     def ch_reads = ch_rows
         .filter { row -> row.fastq }
-        .map { row -> record(id: row.id, single_end: row.single_end, fastq: row.fastq) }
+        .map { row -> record(id: row.id, single_end: row.single_end, run_accession: row.run_accession, fastq: row.fastq) }
 
     def ch_assemblies = ch_rows
         .filter { row -> row.fasta }
@@ -189,10 +193,39 @@ def validateInputSamplesheet(meta, fastq_1, fastq_2, fasta, samplesheet) {
     if (fastq_1) {
         def single_end = !fastq_2
         def reads = (single_end ? [ fastq_1 ] : [ fastq_1, fastq_2 ]).collect { f -> resolveSamplesheetPath(file(f), samplesheet) }
-        return [ id: meta.id as String, single_end: single_end, fastq: reads, fasta: null ]
+        def run_accession = meta.run_accession ? meta.run_accession as String : null   // [] when the column is absent
+        return [ id: meta.id as String, single_end: single_end, run_accession: run_accession, fastq: reads, fasta: null ]
     }
 
-    return [ id: meta.id as String, single_end: null, fastq: null, fasta: resolveSamplesheetPath(file(fasta), samplesheet) ]
+    return [ id: meta.id as String, single_end: null, run_accession: null, fastq: null, fasta: resolveSamplesheetPath(file(fasta), samplesheet) ]
+}
+
+//
+// Validate the sample names of the whole samplesheet. A FASTQ sample may appear on several rows
+// only when its runs are merged (--perform_runmerging): then each row needs its own run_accession,
+// and the runs must all be single-end or all paired-end. An assembly appears on one row only.
+//
+def validateSampleNames(rows, perform_runmerging) {
+    rows.findAll { row -> row[1] }.groupBy { row -> row[0].id }.each { id, sample_rows ->
+        if (sample_rows.size() == 1) {
+            return
+        }
+        if (!perform_runmerging) {
+            error("Please check input samplesheet -> FASTQ sample '${id}' appears on ${sample_rows.size()} rows. Use --perform_runmerging to merge the runs of a sample, or give each row its own sample name")
+        }
+        def runs = sample_rows.collect { row -> row[0].run_accession }
+        if (runs.any { run -> !run } || runs.unique(false).size() != runs.size()) {
+            error("Please check input samplesheet -> FASTQ sample '${id}' appears on several rows: each row needs a different value in the 'run_accession' column")
+        }
+        if (sample_rows.collect { row -> !row[2] }.unique(false).size() > 1) {
+            error("Please check input samplesheet -> the runs of FASTQ sample '${id}' mix single-end and paired-end reads; they cannot be merged")
+        }
+    }
+    rows.findAll { row -> !row[1] }.groupBy { row -> row[0].id }.each { id, assembly_rows ->
+        if (assembly_rows.size() > 1) {
+            error("Please check input samplesheet -> assembly '${id}' appears on ${assembly_rows.size()} rows; assemblies are not merged, give each row its own sample name")
+        }
+    }
 }
 
 //

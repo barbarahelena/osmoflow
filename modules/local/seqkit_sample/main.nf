@@ -23,9 +23,10 @@ process SEQKIT_SAMPLE {
     def args   = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: id
     // The same seed for both mates keeps the pairs in sync. Samples with fewer reads are kept as they are.
+    // -2 (two-pass): sampling by number otherwise holds the reads in memory; two-pass reads the file twice instead.
     def cmds = single_end
-        ? "seqkit sample -s 42 -n ${subsamplelevel} ${args} ${fastq[0]} -o ${prefix}_subsampled.fastq.gz"
-        : (0..1).collect { i -> "seqkit sample -s 42 -n ${subsamplelevel} ${args} ${fastq[i]} -o ${prefix}_${i + 1}_subsampled.fastq.gz" }.join('\n    ')
+        ? "seqkit sample -2 -s 42 -n ${subsamplelevel} ${args} ${fastq[0]} -o ${prefix}_subsampled.fastq.gz"
+        : (0..1).collect { i -> "seqkit sample -2 -s 42 -n ${subsamplelevel} ${args} ${fastq[i]} -o ${prefix}_${i + 1}_subsampled.fastq.gz" }.join('\n    ')
     """
     ${cmds}
     """

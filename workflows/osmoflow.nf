@@ -11,6 +11,7 @@ include { Reads; Assembly       } from '../subworkflows/local/types'
 include { FASTP                } from '../modules/local/fastp'
 include { BOWTIE2_BUILD        } from '../modules/local/bowtie2_build'
 include { BOWTIE2_FILTERHOST   } from '../modules/local/bowtie2_filterhost'
+include { CAT_FASTQ            } from '../modules/local/cat_fastq'
 include { SEQKIT_SAMPLE        } from '../modules/local/seqkit_sample'
 include { READCOUNT as READCOUNT_RAW   } from '../modules/local/readcount'
 include { READCOUNT as READCOUNT_FINAL } from '../modules/local/readcount'
@@ -45,26 +46,52 @@ workflow OSMOFLOW {
         : OSMOTOOL_DOWNLOAD_DB(params.osmo_db_release as String)
 
     //
-    // Optional read preprocessing (FASTQ samples only): fastp, host read removal, subsampling, read counts.
-    // Every step is off unless its parameter is set.
+    // Optional read preprocessing (FASTQ samples only): fastp, host read removal, merging runs, subsampling, read counts.
+    // Every step is off unless its parameter is set. fastp and host read removal run on each run (samplesheet row)
+    // of a sample; the runs are merged before subsampling.
     //
-    def ch_reads: Channel<Reads> = ch_samples
+    def ch_runs: Channel<Reads> = ch_samples
 
     def ch_readcounts_raw = params.readcounts
-        ? READCOUNT_RAW(ch_reads, 'raw')
+        ? READCOUNT_RAW(ch_runs.map { r -> record(id: r.id, single_end: r.single_end, fastq: r.fastq) }, 'raw')
         : channel.empty()
 
     if (params.fastp) {
-        def fastp = FASTP(ch_reads)
-        ch_reads = fastp.map { r -> record(id: r.id, single_end: r.single_end, fastq: r.fastq) }
+        def fastp = FASTP(ch_runs)
+        ch_runs = fastp.map { r -> record(id: r.id, single_end: r.single_end, run_accession: r.run_accession, fastq: r.fastq) }
     }
 
     if (params.host_bowtie2_index || params.host_fasta) {
         def ch_host_index = params.host_bowtie2_index
             ? channel.value(file(params.host_bowtie2_index, checkIfExists: true))
             : BOWTIE2_BUILD(file(params.host_fasta, checkIfExists: true))
-        def filtered = BOWTIE2_FILTERHOST(ch_reads, ch_host_index)
-        ch_reads = filtered.map { r -> record(id: r.id, single_end: r.single_end, fastq: r.fastq) }
+        def filtered = BOWTIE2_FILTERHOST(ch_runs, ch_host_index)
+        ch_runs = filtered.map { r -> record(id: r.id, single_end: r.single_end, run_accession: r.run_accession, fastq: r.fastq) }
+    }
+
+    //
+    // MODULE: Merge the runs of a sample (samplesheet rows with the same sample name), with --perform_runmerging.
+    // Samples with a single run are passed on as they are.
+    //
+    def ch_reads = ch_runs.map { r -> record(id: r.id, single_end: r.single_end, fastq: r.fastq) }
+    if (params.perform_runmerging) {
+        // Sort the runs of a sample so the order of reads in the merged file does not depend on task order
+        def ch_grouped = ch_runs
+            .map { r -> tuple(r.id, r) }
+            .groupBy()
+            .map { id, runs ->
+                def sorted = runs.toSorted { a, b -> (a.run_accession ?: '') <=> (b.run_accession ?: '') }
+                tuple(id, sorted[0].single_end, sorted.size(), sorted.collectMany { r -> r.fastq }.toList())
+            }
+        def merged = CAT_FASTQ(
+            ch_grouped
+                .filter { _id, _se, n, _fastq -> n > 1 }
+                .map { id, se, _n, fastq -> record(id: id, single_end: se, fastq: fastq) }
+        )
+        ch_reads = ch_grouped
+            .filter { _id, _se, n, _fastq -> n == 1 }
+            .map { id, se, _n, fastq -> record(id: id, single_end: se, fastq: fastq) }
+            .mix(merged)
     }
 
     if (params.subsamplelevel) {
@@ -75,14 +102,23 @@ workflow OSMOFLOW {
     def ch_readcounts: Channel<Path> = channel.empty()
     if (params.readcounts) {
         def ch_readcounts_final = READCOUNT_FINAL(ch_reads, 'final')
-        // One table with a raw and a final row per sample, sorted so it does not depend on task order
+        // One table with a raw and a final row per sample, sorted so it does not depend on task order.
+        // The runs of a sample each have a raw count: they are added up into the sample's raw row.
         ch_readcounts = ch_readcounts.mix(WRITE_READCOUNTS(
             'readcounts.csv',
             ch_readcounts_raw
                 .mix(ch_readcounts_final)
                 .map { f -> f.text.trim() }
                 .collect()
-                .map { lines -> ([ 'sample,stage,reads' ] + lines.toSorted()).join('\n') + '\n' }
+                .map { lines ->
+                    def by_sample_stage = lines
+                        .collect { line -> line.tokenize(',') }
+                        .groupBy { fields -> [ fields[0], fields[1] ].join(',') }
+                    def rows = by_sample_stage.keySet().collect { key ->
+                        "${key},${by_sample_stage[key].sum { fields -> fields[2].toLong() }}"
+                    }
+                    ([ 'sample,stage,reads' ] + rows.toSorted()).join('\n') + '\n'
+                }
         ))
     }
 

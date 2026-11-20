@@ -20,7 +20,7 @@
                     "mimetype": "text/csv",
                     "pattern": "^\\S+\\.csv$",
                     "description": "Path to comma-separated file containing information about the samples in the experiment.",
-                    "help_text": "You will need to create a design file with information about the samples in your experiment before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 3 columns, and a header row.",
+                    "help_text": "You will need to create a design file with information about the samples in your experiment before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with a header row and the columns `sample`, `fastq_1`, `fastq_2` (empty for single-end reads), `fasta` and optionally `run_accession`. A FASTQ sample sequenced in several runs gets one row per run, with the same `sample` and a different `run_accession`; use `--perform_runmerging` to merge them.",
                     "fa_icon": "fas fa-file-csv"
                 },
                 "outdir": {
@@ -80,6 +80,11 @@
                     "format": "file-path",
                     "description": "Host genome fasta (e.g. human). Enables host read removal; the Bowtie2 index is built from it (ignored when --host_bowtie2_index is set).",
                     "fa_icon": "fas fa-dna"
+                },
+                "perform_runmerging": {
+                    "type": "boolean",
+                    "description": "Merge the runs of a FASTQ sample (samplesheet rows with the same sample name, each with its own run_accession) after host read removal.",
+                    "fa_icon": "fas fa-object-group"
                 },
                 "subsamplelevel": {
                     "type": "integer",
