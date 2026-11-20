@@ -4,6 +4,13 @@ nextflow_pipeline {
     script "../main.nf"
     tag "pipeline"
 
+    // Output file names are snapshotted for every file except run-specific ones (timestamped
+    // reports, params dump) and the downloaded database, whose folder name is the release.
+    // File contents are snapshotted only for files that do not depend on the osmo_refdb release
+    // or on the run (see tests/.nftignore): the osmotool tables change with every new release
+    // the test profile downloads.
+    def ignore_names = [ 'pipeline_info/*.{html,json,txt}', 'database/**' ]
+
     test("-profile test") {
 
         when {
@@ -13,18 +20,49 @@ nextflow_pipeline {
         }
 
         then {
-            // stable_name: All files + folders in ${params.outdir}/ with a stable name
-            def stable_name = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}'])
-            // stable_path: All files in ${params.outdir}/ with stable content
+            def stable_name = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ignore_names)
             def stable_path = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
             assertAll(
-                { assert workflow.success},
+                { assert workflow.success },
                 { assert snapshot(
-                    // pipeline versions.yml file for multiqc from which Nextflow version is removed because we test pipelines on multiple Nextflow versions
-                    removeNextflowVersion("$outputDir/pipeline_info/osmoflow_software_mqc_versions.yml"),
-                    // All stable path name, with a relative path
+                    // software versions, without the Nextflow version: tests may run on several Nextflow versions
+                    removeNextflowVersion("$outputDir/pipeline_info/osmoflow_software_versions.yml"),
                     stable_name,
-                    // All files with stable contents
+                    stable_path
+                ).match() }
+            )
+        }
+    }
+
+    test("-profile test with all preprocessing") {
+
+        when {
+            params {
+                outdir         = "$outputDir"
+                fastp          = true
+                host_fasta     = "${projectDir}/assets/test/assembly.fasta"
+                subsamplelevel = 1
+                readcounts     = true
+            }
+        }
+
+        then {
+            def stable_name = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ignore_names)
+            def stable_path = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
+            assertAll(
+                { assert workflow.success },
+                // both test reads pass fastp (length_required lowered in conf/test.config),
+                // none map to the 'host', and subsampling keeps one
+                { assert path("$outputDir/readcounts/readcounts.csv").readLines() == [
+                    'sample,stage,reads',
+                    'TEST_PAIRED,final,1',
+                    'TEST_PAIRED,raw,2',
+                    'TEST_SINGLE,final,1',
+                    'TEST_SINGLE,raw,2'
+                ] },
+                { assert snapshot(
+                    removeNextflowVersion("$outputDir/pipeline_info/osmoflow_software_versions.yml"),
+                    stable_name,
                     stable_path
                 ).match() }
             )
