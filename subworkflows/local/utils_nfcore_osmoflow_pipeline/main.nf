@@ -91,7 +91,7 @@ workflow PIPELINE_INITIALISATION {
     def ch_rows = channel
         .fromList(samplesheetToList(params.input, "${projectDir}/assets/schema_input.json"))
         .map { meta, fastq_1, fastq_2, fasta ->
-            validateInputSamplesheet(meta, fastq_1, fastq_2, fasta)
+            validateInputSamplesheet(meta, fastq_1, fastq_2, fasta, params.input as Path)
         }
 
     def ch_reads = ch_rows
@@ -181,18 +181,38 @@ def validateInputParameters() {
 // check against the one combination the schema cannot express
 // (fastq_2 given alongside fasta, with fastq_1 absent).
 //
-def validateInputSamplesheet(meta, fastq_1, fastq_2, fasta) {
+def validateInputSamplesheet(meta, fastq_1, fastq_2, fasta, samplesheet) {
     if (fasta && fastq_2 && !fastq_1) {
         error("Please check input samplesheet -> sample '${meta.id}' provides both 'fasta' and 'fastq_2' without 'fastq_1'; a sample must be either FASTQ reads (fastq_1[, fastq_2]) or an assembly (fasta), not both")
     }
 
     if (fastq_1) {
         def single_end = !fastq_2
-        def reads = single_end ? [ file(fastq_1) ] : [ file(fastq_1), file(fastq_2) ]
+        def reads = (single_end ? [ fastq_1 ] : [ fastq_1, fastq_2 ]).collect { f -> resolveSamplesheetPath(file(f), samplesheet) }
         return [ id: meta.id as String, single_end: single_end, fastq: reads, fasta: null ]
     }
 
-    return [ id: meta.id as String, single_end: null, fastq: null, fasta: file(fasta) ]
+    return [ id: meta.id as String, single_end: null, fastq: null, fasta: resolveSamplesheetPath(file(fasta), samplesheet) ]
+}
+
+//
+// Resolve a file from the samplesheet. A relative path is read relative to the launch directory
+// (nf-schema makes it absolute against it); when the file is not there, look next to the samplesheet,
+// so a samplesheet can list files relative to its own location (e.g. assets/test/samplesheet.csv).
+//
+def resolveSamplesheetPath(path, samplesheet) {
+    if (path.scheme != 'file' || path.exists()) {
+        return path
+    }
+    def launch = workflow.launchDir.toAbsolutePath().normalize()
+    def abs    = path.toAbsolutePath().normalize()
+    if (abs.startsWith(launch)) {
+        def beside_sheet = samplesheet.toAbsolutePath().parent.resolve(launch.relativize(abs).toString()).normalize()
+        if (beside_sheet.exists()) {
+            return beside_sheet
+        }
+    }
+    error("Please check input samplesheet -> file does not exist: ${path}")
 }
 //
 // Generate methods description for MultiQC

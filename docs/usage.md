@@ -38,6 +38,9 @@ SAMPLE_ASSEMBLY,,,assemblies/sample3.fasta
 | `fastq_2` | Full path to a FASTQ file with reverse reads 2. Only valid alongside `fastq_1`. Omit for single-end data.        |
 | `fasta`   | Full path to an assembly FASTA (`.fasta`/`.fa`/`.fna`, optionally gzipped). Routes the sample through `osmotool annotate`. Mutually exclusive with `fastq_1`/`fastq_2`. |
 
+Relative paths are read relative to the directory you launch the pipeline from. When a file is not found there,
+the pipeline looks for it relative to the samplesheet's own location, so a samplesheet can list files next to it.
+
 An [example samplesheet](../assets/samplesheet.csv) has been provided with the pipeline.
 
 ## Reference database
