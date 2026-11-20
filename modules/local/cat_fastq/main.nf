@@ -10,7 +10,7 @@ process CAT_FASTQ {
     label 'cat'
 
     input:
-    record(id: String, single_end: Boolean, fastq: List<Path>)   // all runs of one sample: [ r1, r2, r1, r2, ... ] or [ r1, r1, ... ]
+    record(id: String, single_end: Boolean, fastq: List<Path>, read_count: Long?)   // all runs of one sample: [ r1, r2, r1, r2, ... ] or [ r1, r1, ... ]
 
     stage:
     stageAs fastq, 'input*/*'   // runs can have the same file name
@@ -19,7 +19,8 @@ process CAT_FASTQ {
     record(
         id: id,
         single_end: single_end,
-        fastq: files('*.merged.fastq.gz').toSorted { a, b -> a.name <=> b.name }
+        fastq: files('*.merged.fastq.gz').toSorted { a, b -> a.name <=> b.name },
+        read_count: read_count   // the runs' read counts added up, passed on as it is
     )
 
     topic:

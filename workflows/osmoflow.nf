@@ -13,8 +13,7 @@ include { BOWTIE2_BUILD        } from '../modules/local/bowtie2_build'
 include { BOWTIE2_FILTERHOST   } from '../modules/local/bowtie2_filterhost'
 include { CAT_FASTQ            } from '../modules/local/cat_fastq'
 include { SEQKIT_SAMPLE        } from '../modules/local/seqkit_sample'
-include { READCOUNT as READCOUNT_RAW   } from '../modules/local/readcount'
-include { READCOUNT as READCOUNT_FINAL } from '../modules/local/readcount'
+include { READCOUNT            } from '../modules/local/readcount'
 include { OSMOTOOL_DOWNLOAD_DB } from '../modules/local/osmotool/download_db'
 include { OSMOTOOL_PROFILE     } from '../modules/local/osmotool/profile'
 include { OSMOTOOL_ANNOTATE    } from '../modules/local/osmotool/annotate'
@@ -51,29 +50,38 @@ workflow OSMOFLOW {
     // of a sample; the runs are merged before subsampling.
     //
     def ch_runs: Channel<Reads> = ch_samples
+    def host_filter = params.host_bowtie2_index || params.host_fasta
 
-    def ch_readcounts_raw = params.readcounts
-        ? READCOUNT_RAW(ch_runs.map { r -> record(id: r.id, single_end: r.single_end, fastq: r.fastq) }, 'raw')
-        : channel.empty()
+    // Read counts (reads, or pairs for paired-end) come from the preprocessing steps themselves:
+    // each reports how many reads it read and wrote, so no step re-reads the files to count them.
+    // The raw count is taken from the first step that runs; the count after the last one travels
+    // with the reads (read_count) to subsampling and to osmotool (--total_fragments).
+    def ch_raw_counts = channel.empty()   // tuple(id, count), per run
 
     if (params.fastp) {
         def fastp = FASTP(ch_runs)
-        ch_runs = fastp.map { r -> record(id: r.id, single_end: r.single_end, run_accession: r.run_accession, fastq: r.fastq) }
+        def fastp_counts = fastp.map { r -> tuple(r, fastpReadCounts(r.json)) }
+        ch_raw_counts = ch_raw_counts.mix(fastp_counts.map { r, counts -> tuple(r.id, counts[0]) })
+        ch_runs = fastp_counts.map { r, counts -> record(id: r.id, single_end: r.single_end, run_accession: r.run_accession, fastq: r.fastq, read_count: counts[1]) }
     }
 
-    if (params.host_bowtie2_index || params.host_fasta) {
+    if (host_filter) {
         def ch_host_index = params.host_bowtie2_index
             ? channel.value(file(params.host_bowtie2_index, checkIfExists: true))
             : BOWTIE2_BUILD(file(params.host_fasta, checkIfExists: true))
         def filtered = BOWTIE2_FILTERHOST(ch_runs, ch_host_index)
-        ch_runs = filtered.map { r -> record(id: r.id, single_end: r.single_end, run_accession: r.run_accession, fastq: r.fastq) }
+        def filtered_counts = filtered.map { r -> tuple(r, bowtie2ReadCounts(r.log, r.single_end)) }
+        if (!params.fastp) {
+            ch_raw_counts = ch_raw_counts.mix(filtered_counts.map { r, counts -> tuple(r.id, counts[0]) })
+        }
+        ch_runs = filtered_counts.map { r, counts -> record(id: r.id, single_end: r.single_end, run_accession: r.run_accession, fastq: r.fastq, read_count: counts[1]) }
     }
 
     //
     // MODULE: Merge the runs of a sample (samplesheet rows with the same sample name), with --perform_runmerging.
-    // Samples with a single run are passed on as they are.
+    // Samples with a single run are passed on as they are. The runs' read counts are added up.
     //
-    def ch_reads = ch_runs.map { r -> record(id: r.id, single_end: r.single_end, fastq: r.fastq) }
+    def ch_reads = ch_runs.map { r -> record(id: r.id, single_end: r.single_end, fastq: r.fastq, read_count: r.read_count) }
     if (params.perform_runmerging) {
         // Sort the runs of a sample so the order of reads in the merged file does not depend on task order
         def ch_grouped = ch_runs
@@ -81,34 +89,48 @@ workflow OSMOFLOW {
             .groupBy()
             .map { id, runs ->
                 def sorted = runs.toSorted { a, b -> (a.run_accession ?: '') <=> (b.run_accession ?: '') }
-                tuple(id, sorted[0].single_end, sorted.size(), sorted.collectMany { r -> r.fastq }.toList())
+                def count  = sorted.every { r -> r.read_count != null } ? sorted.sum { r -> r.read_count } as Long : null
+                tuple(id, sorted[0].single_end, sorted.size(), sorted.collectMany { r -> r.fastq }.toList(), count)
             }
         def merged = CAT_FASTQ(
             ch_grouped
-                .filter { _id, _se, n, _fastq -> n > 1 }
-                .map { id, se, _n, fastq -> record(id: id, single_end: se, fastq: fastq) }
+                .filter { _id, _se, n, _fastq, _count -> n > 1 }
+                .map { id, se, _n, fastq, count -> record(id: id, single_end: se, fastq: fastq, read_count: count) }
         )
         ch_reads = ch_grouped
-            .filter { _id, _se, n, _fastq -> n == 1 }
-            .map { id, se, _n, fastq -> record(id: id, single_end: se, fastq: fastq) }
+            .filter { _id, _se, n, _fastq, _count -> n == 1 }
+            .map { id, se, _n, fastq, count -> record(id: id, single_end: se, fastq: fastq, read_count: count) }
             .mix(merged)
     }
 
+    //
+    // MODULE: Subsample to --subsamplelevel reads (pairs) per sample
+    //
     if (params.subsamplelevel) {
         def subsampled = SEQKIT_SAMPLE(ch_reads, params.subsamplelevel as Integer)
-        ch_reads = subsampled.map { r -> record(id: r.id, single_end: r.single_end, fastq: r.fastq) }
+        if (!params.fastp && !host_filter) {
+            // No earlier step counted the reads: subsampling did
+            ch_raw_counts = ch_raw_counts.mix(subsampled.map { r -> tuple(r.id, r.reads_in.toLong()) })
+        }
+        ch_reads = subsampled.map { r -> record(id: r.id, single_end: r.single_end, fastq: r.fastq, read_count: r.reads_out.toLong()) }
     }
 
     def ch_readcounts: Channel<Path> = channel.empty()
     if (params.readcounts) {
-        def ch_readcounts_final = READCOUNT_FINAL(ch_reads, 'final')
+        def ch_final_counts = ch_reads.map { r -> tuple(r.id, r.read_count) }
+        if (!params.fastp && !host_filter && !params.subsamplelevel) {
+            // No preprocessing step ran, so nothing counted the reads: count them here (raw = final)
+            def counted = READCOUNT(ch_reads).map { r -> tuple(r.id, r.count.toLong()) }
+            ch_raw_counts   = ch_raw_counts.mix(counted)
+            ch_final_counts = counted
+        }
         // One table with a raw and a final row per sample, sorted so it does not depend on task order.
         // The runs of a sample each have a raw count: they are added up into the sample's raw row.
         ch_readcounts = ch_readcounts.mix(WRITE_READCOUNTS(
             'readcounts.csv',
-            ch_readcounts_raw
-                .mix(ch_readcounts_final)
-                .map { f -> f.text.trim() }
+            channel.empty()
+                .mix(ch_raw_counts.map { id, count -> "${id},raw,${count}" })
+                .mix(ch_final_counts.map { id, count -> "${id},final,${count}" })
                 .collect()
                 .map { lines ->
                     def by_sample_stage = lines
@@ -201,6 +223,45 @@ workflow OSMOFLOW {
     merged_coordinates = merged_coordinates_results  // channel: merged_gene_coordinates.tsv
     readcounts         = ch_readcounts       // channel: readcounts.csv
     versions           = ch_versions         // channel: osmoflow_software_versions.yml
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    FUNCTIONS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+
+//
+// Reads before and after fastp, from its JSON report: [ before, after ].
+// read1_*: R1 alone, so read pairs for paired-end (summary.* counts both mates).
+//
+def fastpReadCounts(json: Path) -> List<Long> {
+    def report = new groovy.json.JsonSlurper().parseText(json.text) as Map
+    def before = report['read1_before_filtering'] as Map
+    def after  = report['read1_after_filtering'] as Map
+    return [ before['total_reads'] as Long, after['total_reads'] as Long ]
+}
+
+//
+// Reads given to Bowtie2 and reads written out as not host, from its log: [ input, unaligned ].
+// Pairs for paired-end: Bowtie2 counts a pair as one read, and --un-conc writes the pairs that
+// did not align concordantly.
+//
+def bowtie2ReadCounts(log: Path, single_end: Boolean) -> List<Long> {
+    def text      = log.text
+    def total     = leadingNumber(text, 'reads; of these:')
+    def unaligned = leadingNumber(text, single_end ? 'aligned 0 times' : 'aligned concordantly 0 times')
+    if (total == null || unaligned == null) {
+        error("Could not read the read counts from the Bowtie2 log ${log}")
+    }
+    return [ total, unaligned ]
+}
+
+// The number a line starts with, for the first line of `text` that contains `phrase`; null when none does.
+// E.g. '    950 (95.00%) aligned concordantly 0 times' -> 950
+def leadingNumber(text: String, phrase: String) -> Long? {
+    def line = text.readLines().find { l -> l.contains(phrase) }
+    return line != null ? line.trim().tokenize(' ')[0].toLong() : null
 }
 
 /*

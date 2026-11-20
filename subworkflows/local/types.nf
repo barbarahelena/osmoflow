@@ -14,6 +14,7 @@ record Reads {
     single_end: Boolean
     run_accession: String?
     fastq: List<Path>       // [ fastq_1 ] or [ fastq_1, fastq_2 ]
+    read_count: Long?       // reads (pairs for paired-end) in fastq, when a preprocessing step has counted them
 }
 
 // An assembly (samplesheet row with fasta): goes through 'osmotool annotate'

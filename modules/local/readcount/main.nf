@@ -1,29 +1,33 @@
 nextflow.enable.types = true
 
+//
+// Count the reads of a sample. Only used for --readcounts when no preprocessing step ran:
+// fastp, Bowtie2 and subsampling report their read counts themselves.
+//
 process READCOUNT {
-    tag "${id} (${stage})"
+    tag id
     label 'process_single'
     label 'seqkit'
 
     input:
     record(id: String, single_end: Boolean, fastq: List<Path>)
-    stage: String   // 'raw' or 'final'
 
     output:
-    file('*.readcount.csv')   // one line: sample,stage,reads
+    record(
+        id: id,
+        count: eval('cat count.txt')   // reads (pairs) in R1; mates have the same number of reads
+    )
 
     topic:
     tuple(task.process, 'seqkit', eval('seqkit version | sed "s/seqkit v//"')) >> 'versions'
 
     script:
-    // Reads (pairs) in the first file; mates have the same number of reads
     """
-    n=\$(seqkit stats -T ${fastq[0]} | awk 'NR==2 {print \$4}')
-    echo "${id},${stage},\$n" > ${id}.${stage}.readcount.csv
+    seqkit stats -T ${fastq[0]} | awk 'NR==2 {print \$4}' > count.txt
     """
 
     stub:
     """
-    echo "${id},${stage},0" > ${id}.${stage}.readcount.csv
+    echo 0 > count.txt
     """
 }

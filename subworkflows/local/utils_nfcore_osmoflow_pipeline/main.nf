@@ -100,7 +100,7 @@ workflow PIPELINE_INITIALISATION {
 
     def ch_reads = ch_rows
         .filter { row -> row.fastq }
-        .map { row -> record(id: row.id, single_end: row.single_end, run_accession: row.run_accession, fastq: row.fastq) }
+        .map { row -> record(id: row.id, single_end: row.single_end, run_accession: row.run_accession, fastq: row.fastq, read_count: null) }
 
     def ch_assemblies = ch_rows
         .filter { row -> row.fasta }

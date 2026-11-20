@@ -26,7 +26,7 @@ The pipeline runs these steps:
     - **`BOWTIE2_FILTERHOST`** — removal of host (e.g. human) reads with Bowtie2 (`--host_bowtie2_index`, or `--host_fasta` to build the index with **`BOWTIE2_BUILD`**)
     - **`CAT_FASTQ`** — merging the runs of a sample (samplesheet rows with the same sample name) (`--perform_runmerging`)
     - **`SEQKIT_SAMPLE`** — subsampling to an equal number of reads (pairs) per sample (`--subsamplelevel`)
-    - **`READCOUNT`** — a table of read counts per sample before and after preprocessing (`--readcounts`)
+    - **Read counts** — a table of read counts per sample before and after preprocessing (`--readcounts`), taken from the fastp, Bowtie2 and subsampling reports; a separate **`READCOUNT`** job only runs when none of those steps does
 2. **`OSMOTOOL_DOWNLOAD_DB`** — downloads and unpacks an `osmo_refdb` release, unless `--osmo_db` points at one already
 3. **`OSMOTOOL_PROFILE`** — runs `osmotool profile` on samplesheet rows with `fastq_1`[, `fastq_2`]
 4. **`OSMOTOOL_ANNOTATE`** — runs `osmotool annotate` on samplesheet rows with `fasta`
