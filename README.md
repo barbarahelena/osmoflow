@@ -24,12 +24,13 @@ The pipeline runs these steps:
 1. **Read preprocessing** (FASTQ samples only, every step optional and off by default):
     - **`FASTP`** — quality filtering and adapter trimming (`--fastp`)
     - **`BOWTIE2_FILTERHOST`** — removal of host (e.g. human) reads with Bowtie2 (`--host_bowtie2_index`, or `--host_fasta` to build the index with **`BOWTIE2_BUILD`**)
+    - **`CAT_FASTQ`** — merging the runs of a sample (samplesheet rows with the same sample name) (`--perform_runmerging`)
     - **`SEQKIT_SAMPLE`** — subsampling to an equal number of reads (pairs) per sample (`--subsamplelevel`)
     - **`READCOUNT`** — a table of read counts per sample before and after preprocessing (`--readcounts`)
 2. **`OSMOTOOL_DOWNLOAD_DB`** — downloads and unpacks an `osmo_refdb` release, unless `--osmo_db` points at one already
 3. **`OSMOTOOL_PROFILE`** — runs `osmotool profile` on samplesheet rows with `fastq_1`[, `fastq_2`]
 4. **`OSMOTOOL_ANNOTATE`** — runs `osmotool annotate` on samplesheet rows with `fasta`
-5. **`OSMOTOOL_MERGE_COUNTS`** — merges each mode's per-sample `gene_counts.tsv` into one gene x sample matrix per value column (e.g. `profile_raw_count.tsv`, `profile_rpm.tsv`, `profile_copies_per_genome.tsv`; `annotate_raw_count.tsv`, `annotate_copies_per_kb.tsv`); the two modes are never merged together since RPM and `copies_per_kb` aren't comparable
+5. **`OSMOTOOL_MERGE_COUNTS`** — merges each mode's per-sample `gene_counts.tsv` into one gene x sample matrix per value column (e.g. `profile_raw_count.tsv`, `profile_rpm.tsv`, `profile_copies_per_genome.tsv` and, when the `osmo_refdb` release ships a gene catalog, `profile_catalog_count.tsv`, `profile_catalog_ambiguous.tsv`, `profile_translated_count.tsv`; `annotate_raw_count.tsv`, `annotate_copies_per_kb.tsv`); the two modes are never merged together since RPM and `copies_per_kb` aren't comparable
 6. **`OSMOTOOL_MERGE_SYSTEMS`** and **`OSMOTOOL_MERGE_GENE_COORDINATES`** — merge each bin's `*.systems.tsv` and `*.gene_coordinates.tsv` from `OSMOTOOL_ANNOTATE` into one long-format `merged_systems.tsv` and `merged_gene_coordinates.tsv`; only run when at least one `annotate`-mode sample produced them
 
 ## Usage
@@ -77,6 +78,7 @@ nextflow run barbarahelena/osmoflow \
 | --- | --- |
 | `--fastp` | Quality filtering and adapter trimming with fastp (`--cut_right --cut_window_size 4 --cut_mean_quality 15 --length_required 70`; override with `ext.args` in a custom config) |
 | `--host_bowtie2_index <dir>` / `--host_fasta <fa>` | Host read removal with Bowtie2; with a fasta the index is built first (stored in `db/` in the launch directory) |
+| `--perform_runmerging` | Merge the runs of a sample (rows with the same `sample` and a different `run_accession`) after host read removal |
 | `--subsamplelevel <n>` | Subsample to `n` reads (pairs) per sample; samples with fewer reads are kept as they are |
 | `--readcounts` | `readcounts/readcounts.csv` with the number of reads per sample before (`raw`) and after (`final`) preprocessing |
 

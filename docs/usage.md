@@ -21,8 +21,9 @@ You will need to create a samplesheet with information about the samples you wou
 --input '[path to samplesheet file]'
 ```
 
-It must be a comma-separated file with a header row and 4 columns. Each row provides **either** `fastq_1`[, `fastq_2`]
-**or** `fasta` — never both, and never neither.
+It must be a comma-separated file with a header row and the columns below (`run_accession` is optional). Each row
+provides **either** `fastq_1`[, `fastq_2`] **or** `fasta` — never both, and never neither.
+Leave `fastq_2` empty for single-end reads.
 
 ```csv title="samplesheet.csv"
 sample,fastq_1,fastq_2,fasta
@@ -34,6 +35,7 @@ SAMPLE_ASSEMBLY,,,assemblies/sample3.fasta
 | Column    | Description                                                                                                      |
 | --------- | ------------------------------------------------------------------------------------------------------------------ |
 | `sample`  | Custom sample name. Cannot contain spaces.                                                                        |
+| `run_accession` | Optional. Name of the sequencing run, needed when a FASTQ sample has several rows (see [Run merging](#run-merging)). Cannot contain spaces. |
 | `fastq_1` | Full path to a FASTQ file with reads 1 (single-end reads, or forward reads for paired-end). Must be gzipped, `.fastq.gz`/`.fq.gz`. Routes the sample through `osmotool profile`. |
 | `fastq_2` | Full path to a FASTQ file with reverse reads 2. Only valid alongside `fastq_1`. Omit for single-end data.        |
 | `fasta`   | Full path to an assembly FASTA (`.fasta`/`.fa`/`.fna`, optionally gzipped). Routes the sample through `osmotool annotate`. Mutually exclusive with `fastq_1`/`fastq_2`. |
@@ -42,6 +44,25 @@ Relative paths are read relative to the directory you launch the pipeline from. 
 the pipeline looks for it relative to the samplesheet's own location, so a samplesheet can list files next to it.
 
 An [example samplesheet](../assets/samplesheet.csv) has been provided with the pipeline.
+
+### Run merging
+
+If a FASTQ sample was sequenced in several runs, give each run its own row with the same `sample` name and a
+different `run_accession`, and use `--perform_runmerging`:
+
+```csv title="samplesheet.csv"
+sample,run_accession,fastq_1,fastq_2,fasta
+SAMPLE1,RUN1,reads/SAMPLE1_RUN1_R1.fastq.gz,reads/SAMPLE1_RUN1_R2.fastq.gz,
+SAMPLE1,RUN2,reads/SAMPLE1_RUN2_R1.fastq.gz,reads/SAMPLE1_RUN2_R2.fastq.gz,
+SAMPLE2,RUN1,reads/SAMPLE2_RUN1.fastq.gz,,
+SAMPLE2,RUN2,reads/SAMPLE2_RUN2.fastq.gz,,
+SAMPLE3,,,,assemblies/sample3.fasta
+```
+
+The runs are quality-filtered (`--fastp`) and host-filtered separately, their reports named `<sample>_<run_accession>`,
+then merged (concatenated) before subsampling and `osmotool profile`. The `raw` row of `--readcounts` adds up the reads
+of all runs. Without `--perform_runmerging`, a sample name may appear only once. The runs of a sample must all be
+single-end or all paired-end. Assemblies are not merged: each assembly needs its own sample name.
 
 ## Reference database
 
@@ -66,6 +87,7 @@ FASTQ samples can be preprocessed before `osmotool profile`. Every step is **off
 | `--readcounts` | Table of read counts per sample before (`raw`) and after (`final`) preprocessing: `readcounts/readcounts.csv` |
 | `--fastp` | Quality filtering and adapter trimming with fastp (defaults in `conf/modules.config`, override with `ext.args`) |
 | `--host_bowtie2_index <dir>` or `--host_fasta <genome.fa>` | Host (e.g. human) read removal with Bowtie2; the index is built from the fasta when no index is given |
+| `--perform_runmerging` | Merge the runs of a sample (rows with the same `sample` name), see [Run merging](#run-merging) |
 | `--subsamplelevel <n>` | Subsample to `n` reads (pairs) per sample with seqkit; smaller samples are kept as they are |
 
 ```bash
@@ -176,8 +198,6 @@ If `-profile` is not specified, the pipeline will run locally and expect all sof
   - A generic configuration profile to enable [Wave](https://seqera.io/wave/) containers. Use together with one of the above (requires Nextflow ` 24.03.0-edge` or later).
 - `conda`
   - A generic configuration profile to be used with [Conda](https://conda.io/docs/). Please only use Conda as a last resort i.e. when it's not possible to run the pipeline with Docker, Singularity, Podman, Shifter, Charliecloud, or Apptainer.
-- `snellius`
-  - Configuration for the [Snellius](https://www.surf.nl/en/services/snellius-the-national-supercomputer) HPC cluster: submits via SLURM (`-p genoa`) and enables Singularity. Combine with `test`/other profiles as needed, e.g. `-profile snellius`.
 
 ### `-resume`
 
