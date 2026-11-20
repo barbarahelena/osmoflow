@@ -68,4 +68,40 @@ nextflow_pipeline {
             )
         }
     }
+
+    test("-profile test with run merging") {
+
+        when {
+            params {
+                outdir             = "$outputDir"
+                input              = "${projectDir}/assets/test/samplesheet_runmerging.csv"
+                perform_runmerging = true
+                fastp              = true
+                host_fasta         = "${projectDir}/assets/test/assembly.fasta"
+                readcounts         = true
+            }
+        }
+
+        then {
+            def stable_name = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ignore_names)
+            def stable_path = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
+            assertAll(
+                { assert workflow.success },
+                // two runs of two reads (pairs) per sample: the raw counts of the runs are added up,
+                // and the merged reads (no subsampling) have all four
+                { assert path("$outputDir/readcounts/readcounts.csv").readLines() == [
+                    'sample,stage,reads',
+                    'TEST_PAIRED,final,4',
+                    'TEST_PAIRED,raw,4',
+                    'TEST_SINGLE,final,4',
+                    'TEST_SINGLE,raw,4'
+                ] },
+                { assert snapshot(
+                    removeNextflowVersion("$outputDir/pipeline_info/osmoflow_software_versions.yml"),
+                    stable_name,
+                    stable_path
+                ).match() }
+            )
+        }
+    }
 }

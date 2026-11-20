@@ -43,6 +43,7 @@ params {
     host_fasta: Path?               = null       // or a host genome fasta; the Bowtie2 index is built from it
     subsamplelevel: Integer?        = null       // subsample to this number of reads (pairs) per sample
     readcounts: Boolean             = false      // table with read counts per sample (raw and final)
+    perform_runmerging: Boolean     = false      // merge the runs (rows with the same sample name) of a FASTQ sample
 
     // Output and notifications (outdir and monochrome_logs are also set in nextflow.config, which config files read; config wins)
     outdir: String?                 = null
@@ -104,6 +105,7 @@ workflow {
         args,
         params.outdir,
         params.input,
+        params.perform_runmerging,
         params.help,
         params.help_full,
         params.show_hidden

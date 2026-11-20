@@ -1,9 +1,19 @@
 {
-    "-profile test": {
+    "-profile test with run merging": {
         "content": [
             {
+                "BOWTIE2_FILTERHOST": {
+                    "bowtie2": "2.5.2",
+                    "samtools": 1.18
+                },
+                "CAT_FASTQ": {
+                    "cat": 8.32
+                },
+                "FASTP": {
+                    "fastp": "1.0.1"
+                },
                 "OSMOTOOL_ANNOTATE": {
-                    "osmotool": "0.8.0"
+                    "osmotool": "0.9.1"
                 },
                 "OSMOTOOL_MERGE_COUNTS": {
                     "pandas": "3.1.1"
@@ -15,7 +25,96 @@
                     "python": "3.11.18"
                 },
                 "OSMOTOOL_PROFILE": {
-                    "osmotool": "0.8.0"
+                    "osmotool": "0.9.1"
+                },
+                "READCOUNT_FINAL": {
+                    "seqkit": "2.9.0"
+                },
+                "READCOUNT_RAW": {
+                    "seqkit": "2.9.0"
+                },
+                "Workflow": {
+                    "barbarahelena/osmoflow": "v0.1.0"
+                }
+            },
+            [
+                "annotate",
+                "annotate/TEST_ASSEMBLY",
+                "annotate/TEST_ASSEMBLY/TEST_ASSEMBLY.aln_stats.tsv",
+                "annotate/TEST_ASSEMBLY/TEST_ASSEMBLY.gene_coordinates.tsv",
+                "annotate/TEST_ASSEMBLY/TEST_ASSEMBLY.gene_counts.tsv",
+                "annotate/TEST_ASSEMBLY/TEST_ASSEMBLY.systems.tsv",
+                "annotate/annotate_copies_per_kb.tsv",
+                "annotate/annotate_raw_count.tsv",
+                "annotate/merged_gene_coordinates.tsv",
+                "annotate/merged_systems.tsv",
+                "bowtie2",
+                "bowtie2/TEST_PAIRED_RUN1.bowtie2.log",
+                "bowtie2/TEST_PAIRED_RUN1.stats",
+                "bowtie2/TEST_PAIRED_RUN2.bowtie2.log",
+                "bowtie2/TEST_PAIRED_RUN2.stats",
+                "bowtie2/TEST_SINGLE_RUN1.bowtie2.log",
+                "bowtie2/TEST_SINGLE_RUN1.stats",
+                "bowtie2/TEST_SINGLE_RUN2.bowtie2.log",
+                "bowtie2/TEST_SINGLE_RUN2.stats",
+                "fastp",
+                "fastp/TEST_PAIRED_RUN1.fastp.html",
+                "fastp/TEST_PAIRED_RUN1.fastp.json",
+                "fastp/TEST_PAIRED_RUN1.fastp.log",
+                "fastp/TEST_PAIRED_RUN2.fastp.html",
+                "fastp/TEST_PAIRED_RUN2.fastp.json",
+                "fastp/TEST_PAIRED_RUN2.fastp.log",
+                "fastp/TEST_SINGLE_RUN1.fastp.html",
+                "fastp/TEST_SINGLE_RUN1.fastp.json",
+                "fastp/TEST_SINGLE_RUN1.fastp.log",
+                "fastp/TEST_SINGLE_RUN2.fastp.html",
+                "fastp/TEST_SINGLE_RUN2.fastp.json",
+                "fastp/TEST_SINGLE_RUN2.fastp.log",
+                "pipeline_info",
+                "pipeline_info/osmoflow_software_versions.yml",
+                "profile",
+                "profile/TEST_PAIRED",
+                "profile/TEST_PAIRED/TEST_PAIRED.aln_stats.tsv",
+                "profile/TEST_PAIRED/TEST_PAIRED.gene_counts.tsv",
+                "profile/TEST_SINGLE",
+                "profile/TEST_SINGLE/TEST_SINGLE.aln_stats.tsv",
+                "profile/TEST_SINGLE/TEST_SINGLE.gene_counts.tsv",
+                "profile/profile_catalog_ambiguous.tsv",
+                "profile/profile_catalog_count.tsv",
+                "profile/profile_copies_per_genome.tsv",
+                "profile/profile_raw_count.tsv",
+                "profile/profile_rpm.tsv",
+                "profile/profile_translated_count.tsv",
+                "readcounts",
+                "readcounts/readcounts.csv"
+            ],
+            [
+                "readcounts.csv:md5,6b673783f0536e349cf2d84897084d16"
+            ]
+        ],
+        "timestamp": "2026-11-20T17:33:35.953826487",
+        "meta": {
+            "nf-test": "0.9.4",
+            "nextflow": "26.10.0"
+        }
+    },
+    "-profile test": {
+        "content": [
+            {
+                "OSMOTOOL_ANNOTATE": {
+                    "osmotool": "0.9.1"
+                },
+                "OSMOTOOL_MERGE_COUNTS": {
+                    "pandas": "3.1.1"
+                },
+                "OSMOTOOL_MERGE_GENE_COORDINATES": {
+                    "python": "3.11.18"
+                },
+                "OSMOTOOL_MERGE_SYSTEMS": {
+                    "python": "3.11.18"
+                },
+                "OSMOTOOL_PROFILE": {
+                    "osmotool": "0.9.1"
                 },
                 "Workflow": {
                     "barbarahelena/osmoflow": "v0.1.0"
@@ -41,15 +140,18 @@
                 "profile/TEST_SINGLE",
                 "profile/TEST_SINGLE/TEST_SINGLE.aln_stats.tsv",
                 "profile/TEST_SINGLE/TEST_SINGLE.gene_counts.tsv",
+                "profile/profile_catalog_ambiguous.tsv",
+                "profile/profile_catalog_count.tsv",
                 "profile/profile_copies_per_genome.tsv",
                 "profile/profile_raw_count.tsv",
-                "profile/profile_rpm.tsv"
+                "profile/profile_rpm.tsv",
+                "profile/profile_translated_count.tsv"
             ],
             [
                 
             ]
         ],
-        "timestamp": "2026-11-20T12:51:06.11785153",
+        "timestamp": "2026-11-20T17:29:05.665452649",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.10.0"
@@ -66,7 +168,7 @@
                     "fastp": "1.0.1"
                 },
                 "OSMOTOOL_ANNOTATE": {
-                    "osmotool": "0.8.0"
+                    "osmotool": "0.9.1"
                 },
                 "OSMOTOOL_MERGE_COUNTS": {
                     "pandas": "3.1.1"
@@ -78,7 +180,7 @@
                     "python": "3.11.18"
                 },
                 "OSMOTOOL_PROFILE": {
-                    "osmotool": "0.8.0"
+                    "osmotool": "0.9.1"
                 },
                 "READCOUNT_FINAL": {
                     "seqkit": "2.9.0"
@@ -125,9 +227,12 @@
                 "profile/TEST_SINGLE",
                 "profile/TEST_SINGLE/TEST_SINGLE.aln_stats.tsv",
                 "profile/TEST_SINGLE/TEST_SINGLE.gene_counts.tsv",
+                "profile/profile_catalog_ambiguous.tsv",
+                "profile/profile_catalog_count.tsv",
                 "profile/profile_copies_per_genome.tsv",
                 "profile/profile_raw_count.tsv",
                 "profile/profile_rpm.tsv",
+                "profile/profile_translated_count.tsv",
                 "readcounts",
                 "readcounts/readcounts.csv"
             ],
@@ -135,7 +240,7 @@
                 "readcounts.csv:md5,70fe0d08ca756ab654be4bcb07ed6491"
             ]
         ],
-        "timestamp": "2026-11-20T12:52:01.810056738",
+        "timestamp": "2026-11-20T17:31:13.492786148",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.10.0"
