@@ -7,6 +7,12 @@ include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_osmoflow_pipeline'
 
+include { FASTP                } from '../modules/local/fastp'
+include { BOWTIE2_BUILD        } from '../modules/local/bowtie2_build'
+include { BOWTIE2_FILTERHOST   } from '../modules/local/bowtie2_filterhost'
+include { SEQKIT_SAMPLE        } from '../modules/local/seqkit_sample'
+include { READCOUNT as READCOUNT_RAW   } from '../modules/local/readcount'
+include { READCOUNT as READCOUNT_FINAL } from '../modules/local/readcount'
 include { OSMOTOOL_DOWNLOAD_DB } from '../modules/local/osmotool/download_db'
 include { OSMOTOOL_PROFILE     } from '../modules/local/osmotool/profile'
 include { OSMOTOOL_ANNOTATE    } from '../modules/local/osmotool/annotate'
@@ -51,9 +57,58 @@ workflow OSMOFLOW {
     }
 
     //
+    // Optional read preprocessing (FASTQ samples only): fastp, host read removal, subsampling, read counts.
+    // Every step is off unless its parameter is set.
+    //
+    ch_reads = ch_input.reads
+
+    if (params.readcounts) {
+        READCOUNT_RAW ( ch_reads.map { meta, reads -> [ meta, 'raw', reads ] } )
+        ch_versions = ch_versions.mix(READCOUNT_RAW.out.versions.first())
+    }
+
+    if (params.fastp) {
+        FASTP ( ch_reads )
+        ch_versions = ch_versions.mix(FASTP.out.versions.first())
+        ch_reads    = FASTP.out.reads
+    }
+
+    if (params.host_bowtie2_index || params.host_fasta) {
+        if (params.host_bowtie2_index) {
+            ch_host_index = Channel.value(file(params.host_bowtie2_index, checkIfExists: true))
+        } else {
+            BOWTIE2_BUILD ( file(params.host_fasta, checkIfExists: true) )
+            ch_host_index = BOWTIE2_BUILD.out.index
+        }
+        BOWTIE2_FILTERHOST ( ch_reads, ch_host_index )
+        ch_versions = ch_versions.mix(BOWTIE2_FILTERHOST.out.versions.first())
+        ch_reads    = BOWTIE2_FILTERHOST.out.reads
+    }
+
+    if (params.subsamplelevel) {
+        SEQKIT_SAMPLE ( ch_reads, params.subsamplelevel )
+        ch_versions = ch_versions.mix(SEQKIT_SAMPLE.out.versions.first())
+        ch_reads    = SEQKIT_SAMPLE.out.reads
+    }
+
+    if (params.readcounts) {
+        READCOUNT_FINAL ( ch_reads.map { meta, reads -> [ meta, 'final', reads ] } )
+        ch_versions = ch_versions.mix(READCOUNT_FINAL.out.versions.first())
+        READCOUNT_RAW.out.csv
+            .mix(READCOUNT_FINAL.out.csv)
+            .collectFile(
+                name: 'readcounts.csv',
+                storeDir: "${params.outdir}/readcounts",
+                seed: 'sample,stage,reads\n',
+                sort: true,
+                newLine: false
+            )
+    }
+
+    //
     // MODULE: Profile FASTQ reads
     //
-    OSMOTOOL_PROFILE ( ch_input.reads, ch_osmo_refdb )
+    OSMOTOOL_PROFILE ( ch_reads, ch_osmo_refdb )
     ch_versions = ch_versions.mix(OSMOTOOL_PROFILE.out.versions)
 
     //

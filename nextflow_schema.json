@@ -58,6 +58,42 @@
                 }
             }
         },
+        "read_preprocessing_options": {
+            "title": "Read preprocessing options",
+            "type": "object",
+            "fa_icon": "fas fa-filter",
+            "description": "Optional preprocessing of FASTQ samples before 'osmotool profile'. All steps are off by default. Assemblies are not affected.",
+            "properties": {
+                "fastp": {
+                    "type": "boolean",
+                    "description": "Quality filter and adapter-trim the reads with fastp.",
+                    "fa_icon": "fas fa-cut"
+                },
+                "host_bowtie2_index": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "Directory with a Bowtie2 index (*.bt2) of the host genome. Enables host read removal.",
+                    "fa_icon": "fas fa-dna"
+                },
+                "host_fasta": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Host genome fasta (e.g. human). Enables host read removal; the Bowtie2 index is built from it (ignored when --host_bowtie2_index is set).",
+                    "fa_icon": "fas fa-dna"
+                },
+                "subsamplelevel": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Subsample each sample to this number of reads (pairs). Samples with fewer reads are kept as they are.",
+                    "fa_icon": "fas fa-compress-alt"
+                },
+                "readcounts": {
+                    "type": "boolean",
+                    "description": "Write a table with the number of reads per sample before ('raw') and after ('final') preprocessing.",
+                    "fa_icon": "fas fa-list-ol"
+                }
+            }
+        },
         "institutional_config_options": {
             "title": "Institutional config options",
             "type": "object",
@@ -189,6 +225,9 @@
         },
         {
             "$ref": "#/$defs/osmotool_database_options"
+        },
+        {
+            "$ref": "#/$defs/read_preprocessing_options"
         },
         {
             "$ref": "#/$defs/institutional_config_options"
