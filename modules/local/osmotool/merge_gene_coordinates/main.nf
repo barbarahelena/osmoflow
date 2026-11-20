@@ -1,29 +1,26 @@
+nextflow.enable.types = true
+
 process OSMOTOOL_MERGE_GENE_COORDINATES {
-    tag "gene_coordinates"
+    tag 'gene_coordinates'
     label 'process_single'
 
     container "docker://barbarahelena/osmotool:0.8.0"
 
     input:
-    path coordinates
+    coordinates: List<Path>   // *.gene_coordinates.tsv, one per genome/bin
 
     output:
-    path "merged_gene_coordinates.tsv", emit: tsv
-    path "versions.yml",                emit: versions
+    file('merged_gene_coordinates.tsv')
 
-    when:
-    task.ext.when == null || task.ext.when
+    topic:
+    tuple(task.process, 'python', file('python_version.txt')) >> 'versions'
 
     script:
     template 'merge_gene_coordinates.py'
 
     stub:
     """
+    echo stub > python_version.txt
     touch merged_gene_coordinates.tsv
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        python: stub
-    END_VERSIONS
     """
 }

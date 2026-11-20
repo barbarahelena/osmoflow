@@ -25,7 +25,7 @@ SUFFIX = ".gene_counts.tsv"
 
 # Interpolated by Nextflow from the process' `mode` and `counts` inputs.
 mode = "$mode"
-counts = "$counts".split()
+counts = "${counts.join(' ')}".split()
 
 
 def read_gene_counts(path: Path) -> pd.DataFrame:
@@ -60,6 +60,6 @@ for col in value_cols:
     matrix.index.name = "gene"
     matrix.to_csv(f"{mode}_{col.lower()}.tsv", sep="\t")
 
-with open("versions.yml", "w") as fh:
-    print('"$task.process":', file=fh)
-    print(f"    pandas: {pd.__version__}", file=fh)
+# Version for the "versions" topic (eval() outputs only work in bash scripts)
+with open("pandas_version.txt", "w") as fh:
+    print(pd.__version__, file=fh)

@@ -18,7 +18,7 @@ from pathlib import Path
 SUFFIX = ".gene_coordinates.tsv"
 
 # Interpolated by Nextflow from the process' `coordinates` input.
-coordinates = "$coordinates".split()
+coordinates = "${coordinates.join(' ')}".split()
 
 
 def sample_name(path: Path) -> str:
@@ -39,6 +39,6 @@ with open("merged_gene_coordinates.tsv", "w", newline="") as out_f:
             for row in reader:
                 writer.writerow({"sample": sample_name(path), **row})
 
-with open("versions.yml", "w") as fh:
-    print('"$task.process":', file=fh)
-    print(f"    python: {platform.python_version()}", file=fh)
+# Version for the "versions" topic (eval() outputs only work in bash scripts)
+with open("python_version.txt", "w") as fh:
+    print(platform.python_version(), file=fh)

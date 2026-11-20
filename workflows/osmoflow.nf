@@ -1,11 +1,12 @@
+nextflow.enable.types = true
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT MODULES / SUBWORKFLOWS / FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-include { paramsSummaryMap       } from 'plugin/nf-schema'
-include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
-include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_osmoflow_pipeline'
+include { workflowVersionToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
+include { Reads; Assembly       } from '../subworkflows/local/types'
 
 include { FASTP                } from '../modules/local/fastp'
 include { BOWTIE2_BUILD        } from '../modules/local/bowtie2_build'
@@ -19,6 +20,8 @@ include { OSMOTOOL_ANNOTATE    } from '../modules/local/osmotool/annotate'
 include { OSMOTOOL_MERGE_COUNTS           } from '../modules/local/osmotool/merge_counts'
 include { OSMOTOOL_MERGE_SYSTEMS          } from '../modules/local/osmotool/merge_systems'
 include { OSMOTOOL_MERGE_GENE_COORDINATES } from '../modules/local/osmotool/merge_gene_coordinates'
+include { WRITE_FILE as WRITE_READCOUNTS  } from '../modules/local/write_file'
+include { WRITE_FILE as WRITE_VERSIONS    } from '../modules/local/write_file'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -29,181 +32,139 @@ include { OSMOTOOL_MERGE_GENE_COORDINATES } from '../modules/local/osmotool/merg
 workflow OSMOFLOW {
 
     take:
-    ch_samplesheet // channel: [ meta, reads|fasta ] read in from --input, meta.mode is 'profile' or 'annotate'
+    ch_samples: Channel<Reads>       // FASTQ samples, for 'osmotool profile'
+    ch_assemblies: Channel<Assembly> // assemblies, for 'osmotool annotate'
+
     main:
-
-    ch_versions = channel.empty()
-
-    //
-    // Split the samplesheet: FASTQ reads go through 'osmotool profile',
-    // assemblies go through 'osmotool annotate'
-    //
-    ch_samplesheet
-        .branch { meta, input ->
-            reads:    meta.mode == 'profile'
-            assembly: meta.mode == 'annotate'
-        }
-        .set { ch_input }
 
     //
     // MODULE: Download the osmo_refdb reference database, unless a local copy was provided
     //
-    if (params.osmo_db) {
-        ch_osmo_refdb = Channel.value(file(params.osmo_db, checkIfExists: true))
-    } else {
-        OSMOTOOL_DOWNLOAD_DB ( params.osmo_db_release )
-        ch_versions   = ch_versions.mix(OSMOTOOL_DOWNLOAD_DB.out.versions)
-        ch_osmo_refdb = OSMOTOOL_DOWNLOAD_DB.out.db
-    }
+    def ch_osmo_refdb = params.osmo_db
+        ? channel.value(file(params.osmo_db, checkIfExists: true))
+        : OSMOTOOL_DOWNLOAD_DB(params.osmo_db_release as String)
 
     //
     // Optional read preprocessing (FASTQ samples only): fastp, host read removal, subsampling, read counts.
     // Every step is off unless its parameter is set.
     //
-    ch_reads = ch_input.reads
+    def ch_reads: Channel<Reads> = ch_samples
 
-    if (params.readcounts) {
-        READCOUNT_RAW ( ch_reads.map { meta, reads -> [ meta, 'raw', reads ] } )
-        ch_versions = ch_versions.mix(READCOUNT_RAW.out.versions.first())
-    }
+    def ch_readcounts_raw = params.readcounts
+        ? READCOUNT_RAW(ch_reads, 'raw')
+        : channel.empty()
 
     if (params.fastp) {
-        FASTP ( ch_reads )
-        ch_versions = ch_versions.mix(FASTP.out.versions.first())
-        ch_reads    = FASTP.out.reads
+        def fastp = FASTP(ch_reads)
+        ch_reads = fastp.map { r -> record(id: r.id, single_end: r.single_end, fastq: r.fastq) }
     }
 
     if (params.host_bowtie2_index || params.host_fasta) {
-        if (params.host_bowtie2_index) {
-            ch_host_index = Channel.value(file(params.host_bowtie2_index, checkIfExists: true))
-        } else {
-            BOWTIE2_BUILD ( file(params.host_fasta, checkIfExists: true) )
-            ch_host_index = BOWTIE2_BUILD.out.index
-        }
-        BOWTIE2_FILTERHOST ( ch_reads, ch_host_index )
-        ch_versions = ch_versions.mix(BOWTIE2_FILTERHOST.out.versions.first())
-        ch_reads    = BOWTIE2_FILTERHOST.out.reads
+        def ch_host_index = params.host_bowtie2_index
+            ? channel.value(file(params.host_bowtie2_index, checkIfExists: true))
+            : BOWTIE2_BUILD(file(params.host_fasta, checkIfExists: true))
+        def filtered = BOWTIE2_FILTERHOST(ch_reads, ch_host_index)
+        ch_reads = filtered.map { r -> record(id: r.id, single_end: r.single_end, fastq: r.fastq) }
     }
 
     if (params.subsamplelevel) {
-        SEQKIT_SAMPLE ( ch_reads, params.subsamplelevel )
-        ch_versions = ch_versions.mix(SEQKIT_SAMPLE.out.versions.first())
-        ch_reads    = SEQKIT_SAMPLE.out.reads
+        def subsampled = SEQKIT_SAMPLE(ch_reads, params.subsamplelevel as Integer)
+        ch_reads = subsampled.map { r -> record(id: r.id, single_end: r.single_end, fastq: r.fastq) }
     }
 
+    def ch_readcounts: Channel<Path> = channel.empty()
     if (params.readcounts) {
-        READCOUNT_FINAL ( ch_reads.map { meta, reads -> [ meta, 'final', reads ] } )
-        ch_versions = ch_versions.mix(READCOUNT_FINAL.out.versions.first())
-        READCOUNT_RAW.out.csv
-            .mix(READCOUNT_FINAL.out.csv)
-            .collectFile(
-                name: 'readcounts.csv',
-                storeDir: "${params.outdir}/readcounts",
-                seed: 'sample,stage,reads\n',
-                sort: true,
-                newLine: false
-            )
+        def ch_readcounts_final = READCOUNT_FINAL(ch_reads, 'final')
+        // One table with a raw and a final row per sample, sorted so it does not depend on task order
+        ch_readcounts = ch_readcounts.mix(WRITE_READCOUNTS(
+            'readcounts.csv',
+            ch_readcounts_raw
+                .mix(ch_readcounts_final)
+                .map { f -> f.text.trim() }
+                .collect()
+                .map { lines -> ([ 'sample,stage,reads' ] + lines.toSorted()).join('\n') + '\n' }
+        ))
     }
 
     //
     // MODULE: Profile FASTQ reads
     //
-    OSMOTOOL_PROFILE ( ch_reads, ch_osmo_refdb )
-    ch_versions = ch_versions.mix(OSMOTOOL_PROFILE.out.versions)
+    def profile_results = OSMOTOOL_PROFILE(ch_reads, ch_osmo_refdb)
 
     //
     // MODULE: Annotate assemblies
     //
-    OSMOTOOL_ANNOTATE ( ch_input.assembly, ch_osmo_refdb )
-    ch_versions = ch_versions.mix(OSMOTOOL_ANNOTATE.out.versions)
+    def annotate_results = OSMOTOOL_ANNOTATE(ch_assemblies, ch_osmo_refdb)
 
     //
     // MODULE: Merge each mode's per-sample gene_counts.tsv into gene x sample matrices (one per value column).
     // profile (RPM) and annotate (copies_per_kb) are never merged together -- see docs/output.md.
     // Only runs when the corresponding mode has at least one sample.
     //
-    OSMOTOOL_PROFILE.out.counts
-        .map { meta, counts -> counts }
+    // collect() gives [] when a mode has no samples: filter those out so the merge does not run
+    def ch_profile_counts = profile_results
+        .map { r -> r.counts }
         .collect()
-        .map { counts -> [ 'profile', counts ] }
-        .set { ch_profile_counts }
-
-    OSMOTOOL_ANNOTATE.out.counts
-        .map { meta, counts -> counts }
+    def ch_annotate_counts = annotate_results
+        .map { r -> r.counts }
         .collect()
-        .map { counts -> [ 'annotate', counts ] }
-        .set { ch_annotate_counts }
+    def ch_merge_counts = channel.empty()
+        .mix(ch_profile_counts.map { counts -> tuple('profile', counts) })
+        .mix(ch_annotate_counts.map { counts -> tuple('annotate', counts) })
+        .filter { _mode, counts -> counts }
+        .map { mode, counts -> record(mode: mode, counts: counts.toSorted { a, b -> a.name <=> b.name }) }
 
-    OSMOTOOL_MERGE_COUNTS ( ch_profile_counts.mix(ch_annotate_counts) )
-    ch_versions = ch_versions.mix(OSMOTOOL_MERGE_COUNTS.out.versions)
+    def merged_counts_results = OSMOTOOL_MERGE_COUNTS(ch_merge_counts)
 
     //
     // MODULE: Merge each bin's *.systems.tsv into one long-format table.
     // Only produced for the 'annotate' mode, and only runs when at least one bin has a systems.tsv.
     //
-    OSMOTOOL_ANNOTATE.out.systems
-        .map { meta, systems -> systems }
-        .collect()
-        .filter { systems -> systems }
-        .set { ch_annotate_systems }
-
-    OSMOTOOL_MERGE_SYSTEMS ( ch_annotate_systems )
-    ch_versions = ch_versions.mix(OSMOTOOL_MERGE_SYSTEMS.out.versions)
+    def merged_systems_results = OSMOTOOL_MERGE_SYSTEMS(
+        channel.empty()
+            .mix(annotate_results.filter { r -> r.systems != null }.map { r -> r.systems }.collect())
+            .filter { files -> files }   // collect() gives [] when no bin has one: do not run the merge
+            .map { files -> files.toSorted { a, b -> a.name <=> b.name } }
+    )
 
     //
     // MODULE: Merge each genome/bin's *.gene_coordinates.tsv into one long-format table.
     // Only produced for the 'annotate' mode, and only runs when at least one bin has a gene_coordinates.tsv.
     //
-    OSMOTOOL_ANNOTATE.out.coordinates
-        .map { meta, coordinates -> coordinates }
-        .collect()
-        .filter { coordinates -> coordinates }
-        .set { ch_annotate_coordinates }
-
-    OSMOTOOL_MERGE_GENE_COORDINATES ( ch_annotate_coordinates )
-    ch_versions = ch_versions.mix(OSMOTOOL_MERGE_GENE_COORDINATES.out.versions)
+    def merged_coordinates_results = OSMOTOOL_MERGE_GENE_COORDINATES(
+        channel.empty()
+            .mix(annotate_results.filter { r -> r.coordinates != null }.map { r -> r.coordinates }.collect())
+            .filter { files -> files }   // collect() gives [] when no bin has one: do not run the merge
+            .map { files -> files.toSorted { a, b -> a.name <=> b.name } }
+    )
 
     //
-    // Collate and save software versions
+    // Collate software versions from the 'versions' topic channel. Each entry is [ process, tool, version ].
+    // collect() waits until every process has reported; sorting makes the file independent of task order.
     //
-    def topic_versions = Channel.topic("versions")
-        .distinct()
-        .branch { entry ->
-            versions_file: entry instanceof Path
-            versions_tuple: true
-        }
-
-    def topic_versions_string = topic_versions.versions_tuple
-        .map { process, tool, version ->
-            [ process[process.lastIndexOf(':')+1..-1], "  ${tool}: ${version}" ]
-        }
-        .groupTuple(by:0)
-        .map { process, tool_versions ->
-            tool_versions.unique().sort()
-            "${process}:\n${tool_versions.join('\n')}"
-        }
-
-    softwareVersionsToYAML(ch_versions.mix(topic_versions.versions_file))
-        .mix(topic_versions_string)
-        .collectFile(
-            storeDir: "${params.outdir}/pipeline_info",
-            name:  'osmoflow_software_'  + 'versions.yml',
-            sort: true,
-            newLine: true
-        ).set { ch_collated_versions }
-
+    def ch_versions_topic: Channel<Tuple> = channel.topic('versions')
+    def ch_versions = WRITE_VERSIONS(
+        'osmoflow_software_versions.yml',
+        ch_versions_topic
+            .map { process, tool, version ->
+                def v = (version instanceof Path) ? version.text.trim() : version.toString().trim()
+                tuple(process.tokenize(':')[-1], "  ${tool}: ${v}")
+            }
+            .unique()
+            .groupBy()
+            .map { process, lines -> "${process}:\n${lines.toSorted().join('\n')}" }
+            .collect()
+            .map { sections -> (sections.toSorted() + [ workflowVersionToYAML() ]).join('\n') + '\n' }
+    )
 
     emit:
-    profile_counts     = OSMOTOOL_PROFILE.out.counts               // channel: [ meta, path(*.gene_counts.tsv) ]
-    profile_stats      = OSMOTOOL_PROFILE.out.stats                // channel: [ meta, path(*.aln_stats.tsv) ]
-    annotate_counts    = OSMOTOOL_ANNOTATE.out.counts              // channel: [ meta, path(*.gene_counts.tsv) ]
-    annotate_stats     = OSMOTOOL_ANNOTATE.out.stats               // channel: [ meta, path(*.aln_stats.tsv) ]
-    annotate_systems   = OSMOTOOL_ANNOTATE.out.systems             // channel: [ meta, path(*.systems.tsv) ]
-    merged_counts      = OSMOTOOL_MERGE_COUNTS.out.matrix          // channel: [ mode, [ path(<mode>_<column>.tsv), ... ] ]
-    merged_systems     = OSMOTOOL_MERGE_SYSTEMS.out.tsv            // channel: path(merged_systems.tsv)
-    merged_coordinates = OSMOTOOL_MERGE_GENE_COORDINATES.out.tsv   // channel: path(merged_gene_coordinates.tsv)
-    versions           = ch_versions                               // channel: [ path(versions.yml) ]
-
+    profile            = profile_results             // channel: record(id, counts, stats)
+    annotate           = annotate_results            // channel: record(id, counts, stats, systems?, coordinates?)
+    merged_counts      = merged_counts_results       // channel: record(mode, matrix: [ <mode>_<column>.tsv, ... ])
+    merged_systems     = merged_systems_results      // channel: merged_systems.tsv
+    merged_coordinates = merged_coordinates_results  // channel: merged_gene_coordinates.tsv
+    readcounts         = ch_readcounts       // channel: readcounts.csv
+    versions           = ch_versions         // channel: osmoflow_software_versions.yml
 }
 
 /*

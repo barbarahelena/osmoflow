@@ -1,29 +1,26 @@
+nextflow.enable.types = true
+
 process OSMOTOOL_MERGE_SYSTEMS {
-    tag "systems"
+    tag 'systems'
     label 'process_single'
 
     container "docker://barbarahelena/osmotool:0.8.0"
 
     input:
-    path systems
+    systems: List<Path>   // *.systems.tsv, one per bin
 
     output:
-    path "merged_systems.tsv", emit: tsv
-    path "versions.yml",       emit: versions
+    file('merged_systems.tsv')
 
-    when:
-    task.ext.when == null || task.ext.when
+    topic:
+    tuple(task.process, 'python', file('python_version.txt')) >> 'versions'
 
     script:
     template 'merge_systems_tsv.py'
 
     stub:
     """
+    echo stub > python_version.txt
     touch merged_systems.tsv
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        python: stub
-    END_VERSIONS
     """
 }

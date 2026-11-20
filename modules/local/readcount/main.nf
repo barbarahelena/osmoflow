@@ -1,34 +1,29 @@
+nextflow.enable.types = true
+
 process READCOUNT {
-    tag "${meta.id} (${stage})"
+    tag "${id} (${stage})"
     label 'process_single'
     label 'seqkit'
 
     input:
-    tuple val(meta), val(stage), path(reads)
+    record(id: String, single_end: Boolean, fastq: List<Path>)
+    stage: String   // 'raw' or 'final'
 
     output:
-    path "*.readcount.csv", emit: csv
-    path "versions.yml",    emit: versions
+    file('*.readcount.csv')   // one line: sample,stage,reads
+
+    topic:
+    tuple(task.process, 'seqkit', eval('seqkit version | sed "s/seqkit v//"')) >> 'versions'
 
     script:
     // Reads (pairs) in the first file; mates have the same number of reads
     """
-    n=\$(seqkit stats -T ${reads[0]} | awk 'NR==2 {print \$4}')
-    echo "${meta.id},${stage},\$n" > ${meta.id}.${stage}.readcount.csv
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        seqkit: \$(seqkit version | sed "s/seqkit v//")
-    END_VERSIONS
+    n=\$(seqkit stats -T ${fastq[0]} | awk 'NR==2 {print \$4}')
+    echo "${id},${stage},\$n" > ${id}.${stage}.readcount.csv
     """
 
     stub:
     """
-    echo "${meta.id},${stage},0" > ${meta.id}.${stage}.readcount.csv
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        seqkit: stub
-    END_VERSIONS
+    echo "${id},${stage},0" > ${id}.${stage}.readcount.csv
     """
 }
