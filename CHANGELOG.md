@@ -13,6 +13,8 @@ Initial release of barbarahelena/osmoflow, created with the [nf-core](https://nf
 
 ### `Fixed`
 
+- Subsampling (`SEQKIT_SAMPLE`) runs `seqkit sample` in two-pass mode (`-2`): sampling by number no longer holds all reads in memory.
+
 - `SEQKIT_SAMPLE` runs `seqkit sample` in two-pass mode (`-2`), so subsampling by number no longer holds all reads in memory.
 
 ### `Dependencies`
