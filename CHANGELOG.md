@@ -23,6 +23,8 @@ Initial release of barbarahelena/osmoflow, created with the [nf-core](https://nf
 
 ### `Dependencies`
 
+- osmotool container 0.9.2 → 0.10.0. `osmotool profile` now needs an `osmo_refdb` release that ships a gene catalog (v10+) and stops with an error on v5–v9, which are annotate-only; `latest` still downloads v9 until v10 is on Zenodo, so FASTQ samples need `--osmo_db` with a v10 release. `aln_stats.tsv` of `profile` records the catalog used (`catalog`, `catalog_dir`, `catalog_hmm_sha256`, ...).
+
 - osmotool container 0.8.0 → 0.9.2. With an `osmo_refdb` release that ships a gene catalog, `osmotool profile` adds `catalog_count`, `catalog_ambiguous` and `translated_count` columns, merged into `profile_catalog_count.tsv`, `profile_catalog_ambiguous.tsv` and `profile_translated_count.tsv`.
 - osmotool 0.9.2 counts `profile` in fragments for both read layouts: RPM is per million fragments (read pairs, or single-end reads), so paired-end RPM is 2× what earlier versions gave and now comparable to single-end; single-end RPM and `copies_per_genome` are unchanged. The `gene_counts.tsv` header lines and `aln_stats.tsv` keys are renamed (`total_reads` → `total_fragments`, ...).
 

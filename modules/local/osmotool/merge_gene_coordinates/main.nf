@@ -4,7 +4,7 @@ process OSMOTOOL_MERGE_GENE_COORDINATES {
     tag 'gene_coordinates'
     label 'process_single'
 
-    container "docker://barbarahelena/osmotool:0.9.2"
+    container "docker://barbarahelena/osmotool:0.10.0"
 
     input:
     coordinates: List<Path>   // *.gene_coordinates.tsv, one per genome/bin

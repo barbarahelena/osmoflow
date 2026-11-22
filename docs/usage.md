@@ -72,8 +72,14 @@ default). If you already have a copy — e.g. from a previous run, or downloaded
 `osmotool download-db` — point the pipeline at it instead to skip the download:
 
 ```bash
---osmo_db /path/to/osmo_refdb/v9
+--osmo_db /path/to/osmo_refdb/v10
 ```
+
+> [!IMPORTANT]
+> From osmotool 0.10.0, `osmotool profile` (FASTQ samples) needs an `osmo_refdb` release that ships a gene
+> catalog: v10 or later. v5–v9 are annotate-only: `profile` stops with an error on them. `latest` still downloads
+> v9 until v10 is on Zenodo, so for FASTQ samples point `--osmo_db` at a v10 release. Assemblies (`osmotool annotate`)
+> work with every release.
 
 The pipeline checks that `--osmo_db` is a directory containing `osmo_refdb.dmnd` before launching any analysis
 processes, so a misconfigured path fails fast with a clear error rather than partway through a run.

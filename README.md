@@ -60,6 +60,8 @@ nextflow run barbarahelena/osmoflow \
 
 By default, the `osmo_refdb` reference database is downloaded automatically (latest release). To reuse an
 already-downloaded copy instead, pass `--osmo_db /path/to/osmo_refdb/<release>` (a directory containing `osmo_refdb.dmnd`).
+FASTQ samples (`osmotool profile`) need osmo_refdb v10 or later, which ships a gene catalog; until v10 is on Zenodo,
+`latest` downloads v9, which is annotate-only, so pass `--osmo_db` with a v10 release for FASTQ samples.
 
 FASTQ samples can optionally be preprocessed before profiling. Each step is enabled by its own parameter:
 
