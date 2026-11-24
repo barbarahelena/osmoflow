@@ -4,7 +4,7 @@ process OSMOTOOL_PROFILE {
     tag id
     label 'process_medium'
 
-    container "docker://barbarahelena/osmotool:0.10.0"
+    container "docker://barbarahelena/osmotool:0.11.1"
 
     input:
     record(id: String, single_end: Boolean, fastq: List<Path>, read_count: Long?)   // read_count: pairs for paired-end
@@ -14,6 +14,7 @@ process OSMOTOOL_PROFILE {
     record(
         id: id,
         counts: file('*.gene_counts.tsv'),
+        units: file('*.unit_counts.tsv'),   // the counts per reporting unit; needs osmo_refdb v10+ (report levels)
         stats: file('*.aln_stats.tsv')
     )
 
@@ -40,6 +41,7 @@ process OSMOTOOL_PROFILE {
     def prefix = task.ext.prefix ?: id
     """
     touch ${prefix}.gene_counts.tsv
+    touch ${prefix}.unit_counts.tsv
     touch ${prefix}.aln_stats.tsv
     """
 }

@@ -4,7 +4,7 @@ process OSMOTOOL_DOWNLOAD_DB {
     tag release
     label 'process_low'
 
-    container "docker://barbarahelena/osmotool:0.10.0"
+    container "docker://barbarahelena/osmotool:0.11.1"
 
     input:
     release: String   // osmo_refdb release, or 'latest'

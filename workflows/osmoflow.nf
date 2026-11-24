@@ -18,6 +18,7 @@ include { OSMOTOOL_DOWNLOAD_DB } from '../modules/local/osmotool/download_db'
 include { OSMOTOOL_PROFILE     } from '../modules/local/osmotool/profile'
 include { OSMOTOOL_ANNOTATE    } from '../modules/local/osmotool/annotate'
 include { OSMOTOOL_MERGE_COUNTS           } from '../modules/local/osmotool/merge_counts'
+include { OSMOTOOL_MERGE_UNITS            } from '../modules/local/osmotool/merge_units'
 include { OSMOTOOL_MERGE_SYSTEMS          } from '../modules/local/osmotool/merge_systems'
 include { OSMOTOOL_MERGE_GENE_COORDINATES } from '../modules/local/osmotool/merge_gene_coordinates'
 include { WRITE_FILE as WRITE_READCOUNTS  } from '../modules/local/write_file'
@@ -147,7 +148,18 @@ workflow OSMOFLOW {
     //
     // MODULE: Profile FASTQ reads
     //
-    def profile_results = OSMOTOOL_PROFILE(ch_reads, ch_osmo_refdb)
+    // osmotool profile's unit table needs the release's report levels (osmo_refdb v10+). Checked here, on the
+    // FASTQ samples only (annotate-only runs may use older releases), so the run stops with one message
+    // instead of every sample's profile task failing and retrying.
+    def ch_reads_checked = ch_reads
+        .combine(ch_osmo_refdb)
+        .map { r, db ->
+            if (!db.resolve('osmo_refdb.profile_report_levels.tsv').exists())
+                error "osmoflow needs osmo_refdb v10 or later for FASTQ samples: ${db} has no " +
+                      "osmo_refdb.profile_report_levels.tsv. Pass --osmo_db with a v10 (or later) release."
+            r
+        }
+    def profile_results = OSMOTOOL_PROFILE(ch_reads_checked, ch_osmo_refdb)
 
     //
     // MODULE: Annotate assemblies
@@ -155,20 +167,36 @@ workflow OSMOFLOW {
     def annotate_results = OSMOTOOL_ANNOTATE(ch_assemblies, ch_osmo_refdb)
 
     //
+    // MODULE: Merge the per-sample unit_counts.tsv (gene_counts.tsv with the release's report levels applied)
+    // into unit x sample matrices of raw_count and RPM, and one long table of where the reads came from.
+    // These are profile's results. Only runs when there is at least one FASTQ sample.
+    //
+    def merged_units_results = OSMOTOOL_MERGE_UNITS(
+        channel.empty()
+            .mix(profile_results.map { r -> r.units }.collect())
+            .filter { files -> files }   // collect() gives [] when there are no FASTQ samples: do not run the merge
+            .map { files -> files.toSorted { a, b -> a.name <=> b.name } }
+    )
+
+    //
     // MODULE: Merge each mode's per-sample gene_counts.tsv into gene x sample matrices (one per value column).
+    // For profile only with --profile_gene_matrices, since these ignore the report levels.
     // profile (RPM) and annotate (copies_per_kb) are never merged together -- see docs/output.md.
     // Only runs when the corresponding mode has at least one sample.
     //
     // collect() gives [] when a mode has no samples: filter those out so the merge does not run
-    def ch_profile_counts = profile_results
-        .map { r -> r.counts }
-        .collect()
     def ch_annotate_counts = annotate_results
         .map { r -> r.counts }
         .collect()
-    def ch_merge_counts = channel.empty()
-        .mix(ch_profile_counts.map { counts -> tuple('profile', counts) })
+    def ch_gene_counts = channel.empty()
         .mix(ch_annotate_counts.map { counts -> tuple('annotate', counts) })
+    if (params.profile_gene_matrices) {
+        def ch_profile_counts = profile_results
+            .map { r -> r.counts }
+            .collect()
+        ch_gene_counts = ch_gene_counts.mix(ch_profile_counts.map { counts -> tuple('profile', counts) })
+    }
+    def ch_merge_counts = ch_gene_counts
         .filter { _mode, counts -> counts }
         .map { mode, counts -> record(mode: mode, counts: counts.toSorted { a, b -> a.name <=> b.name }) }
 
@@ -216,8 +244,9 @@ workflow OSMOFLOW {
     )
 
     emit:
-    profile            = profile_results             // channel: record(id, counts, stats)
+    profile            = profile_results             // channel: record(id, counts, units, stats)
     annotate           = annotate_results            // channel: record(id, counts, stats, systems?, coordinates?)
+    merged_units       = merged_units_results        // channel: record(raw_count, rpm, sources)
     merged_counts      = merged_counts_results       // channel: record(mode, matrix: [ <mode>_<column>.tsv, ... ])
     merged_systems     = merged_systems_results      // channel: merged_systems.tsv
     merged_coordinates = merged_coordinates_results  // channel: merged_gene_coordinates.tsv

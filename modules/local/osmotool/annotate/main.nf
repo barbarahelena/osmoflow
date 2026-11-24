@@ -4,7 +4,7 @@ process OSMOTOOL_ANNOTATE {
     tag id
     label 'process_medium'
 
-    container "docker://barbarahelena/osmotool:0.10.0"
+    container "docker://barbarahelena/osmotool:0.11.1"
 
     input:
     record(id: String, fasta: Path)

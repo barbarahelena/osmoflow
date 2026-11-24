@@ -13,7 +13,7 @@
                     "fastp": "1.0.1"
                 },
                 "OSMOTOOL_ANNOTATE": {
-                    "osmotool": "0.10.0"
+                    "osmotool": "0.11.1"
                 },
                 "OSMOTOOL_MERGE_COUNTS": {
                     "pandas": "3.1.1"
@@ -24,8 +24,11 @@
                 "OSMOTOOL_MERGE_SYSTEMS": {
                     "python": "3.11.18"
                 },
+                "OSMOTOOL_MERGE_UNITS": {
+                    "pandas": "3.1.1"
+                },
                 "OSMOTOOL_PROFILE": {
-                    "osmotool": "0.10.0"
+                    "osmotool": "0.11.1"
                 },
                 "Workflow": {
                     "barbarahelena/osmoflow": "v0.1.0"
@@ -70,15 +73,14 @@
                 "profile/TEST_PAIRED",
                 "profile/TEST_PAIRED/TEST_PAIRED.aln_stats.tsv",
                 "profile/TEST_PAIRED/TEST_PAIRED.gene_counts.tsv",
+                "profile/TEST_PAIRED/TEST_PAIRED.unit_counts.tsv",
                 "profile/TEST_SINGLE",
                 "profile/TEST_SINGLE/TEST_SINGLE.aln_stats.tsv",
                 "profile/TEST_SINGLE/TEST_SINGLE.gene_counts.tsv",
-                "profile/profile_catalog_ambiguous.tsv",
-                "profile/profile_catalog_count.tsv",
-                "profile/profile_copies_per_genome.tsv",
-                "profile/profile_raw_count.tsv",
-                "profile/profile_rpm.tsv",
-                "profile/profile_translated_count.tsv",
+                "profile/TEST_SINGLE/TEST_SINGLE.unit_counts.tsv",
+                "profile/profile_read_sources.tsv",
+                "profile/profile_unit_raw_count.tsv",
+                "profile/profile_unit_rpm.tsv",
                 "readcounts",
                 "readcounts/readcounts.csv"
             ],
@@ -86,7 +88,7 @@
                 "readcounts.csv:md5,6b673783f0536e349cf2d84897084d16"
             ]
         ],
-        "timestamp": "2026-11-22T22:11:09.779876472",
+        "timestamp": "2026-11-24T22:16:43.298860729",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.10.0"
@@ -96,7 +98,7 @@
         "content": [
             {
                 "OSMOTOOL_ANNOTATE": {
-                    "osmotool": "0.10.0"
+                    "osmotool": "0.11.1"
                 },
                 "OSMOTOOL_MERGE_COUNTS": {
                     "pandas": "3.1.1"
@@ -107,8 +109,11 @@
                 "OSMOTOOL_MERGE_SYSTEMS": {
                     "python": "3.11.18"
                 },
+                "OSMOTOOL_MERGE_UNITS": {
+                    "pandas": "3.1.1"
+                },
                 "OSMOTOOL_PROFILE": {
-                    "osmotool": "0.10.0"
+                    "osmotool": "0.11.1"
                 },
                 "Workflow": {
                     "barbarahelena/osmoflow": "v0.1.0"
@@ -131,21 +136,20 @@
                 "profile/TEST_PAIRED",
                 "profile/TEST_PAIRED/TEST_PAIRED.aln_stats.tsv",
                 "profile/TEST_PAIRED/TEST_PAIRED.gene_counts.tsv",
+                "profile/TEST_PAIRED/TEST_PAIRED.unit_counts.tsv",
                 "profile/TEST_SINGLE",
                 "profile/TEST_SINGLE/TEST_SINGLE.aln_stats.tsv",
                 "profile/TEST_SINGLE/TEST_SINGLE.gene_counts.tsv",
-                "profile/profile_catalog_ambiguous.tsv",
-                "profile/profile_catalog_count.tsv",
-                "profile/profile_copies_per_genome.tsv",
-                "profile/profile_raw_count.tsv",
-                "profile/profile_rpm.tsv",
-                "profile/profile_translated_count.tsv"
+                "profile/TEST_SINGLE/TEST_SINGLE.unit_counts.tsv",
+                "profile/profile_read_sources.tsv",
+                "profile/profile_unit_raw_count.tsv",
+                "profile/profile_unit_rpm.tsv"
             ],
             [
                 
             ]
         ],
-        "timestamp": "2026-11-22T22:08:33.134632083",
+        "timestamp": "2026-11-24T22:13:44.390608421",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.10.0"
@@ -162,7 +166,7 @@
                     "fastp": "1.0.1"
                 },
                 "OSMOTOOL_ANNOTATE": {
-                    "osmotool": "0.10.0"
+                    "osmotool": "0.11.1"
                 },
                 "OSMOTOOL_MERGE_COUNTS": {
                     "pandas": "3.1.1"
@@ -173,8 +177,11 @@
                 "OSMOTOOL_MERGE_SYSTEMS": {
                     "python": "3.11.18"
                 },
+                "OSMOTOOL_MERGE_UNITS": {
+                    "pandas": "3.1.1"
+                },
                 "OSMOTOOL_PROFILE": {
-                    "osmotool": "0.10.0"
+                    "osmotool": "0.11.1"
                 },
                 "SEQKIT_SAMPLE": {
                     "seqkit": "2.9.0"
@@ -212,15 +219,14 @@
                 "profile/TEST_PAIRED",
                 "profile/TEST_PAIRED/TEST_PAIRED.aln_stats.tsv",
                 "profile/TEST_PAIRED/TEST_PAIRED.gene_counts.tsv",
+                "profile/TEST_PAIRED/TEST_PAIRED.unit_counts.tsv",
                 "profile/TEST_SINGLE",
                 "profile/TEST_SINGLE/TEST_SINGLE.aln_stats.tsv",
                 "profile/TEST_SINGLE/TEST_SINGLE.gene_counts.tsv",
-                "profile/profile_catalog_ambiguous.tsv",
-                "profile/profile_catalog_count.tsv",
-                "profile/profile_copies_per_genome.tsv",
-                "profile/profile_raw_count.tsv",
-                "profile/profile_rpm.tsv",
-                "profile/profile_translated_count.tsv",
+                "profile/TEST_SINGLE/TEST_SINGLE.unit_counts.tsv",
+                "profile/profile_read_sources.tsv",
+                "profile/profile_unit_raw_count.tsv",
+                "profile/profile_unit_rpm.tsv",
                 "readcounts",
                 "readcounts/readcounts.csv"
             ],
@@ -228,7 +234,7 @@
                 "readcounts.csv:md5,70fe0d08ca756ab654be4bcb07ed6491"
             ]
         ],
-        "timestamp": "2026-11-22T22:09:49.211354558",
+        "timestamp": "2026-11-24T22:15:15.13322956",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.10.0"
