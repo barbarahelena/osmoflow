@@ -24,6 +24,14 @@ nextflow_pipeline {
             def stable_path = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
             assertAll(
                 { assert workflow.success },
+                // a unit on report level none is NA in every sample, never 0 (not reliable on short reads)
+                { assert path("$outputDir/profile/profile_unit_raw_count.tsv").readLines()
+                    .find { line -> line.startsWith('opuAC\t') }
+                    .tokenize('\t').drop(1).every { value -> value == 'NA' } },
+                // the same for annotate's unit table (osmo_refdb v11+: annotate report levels)
+                { assert path("$outputDir/annotate/annotate_unit_raw_count.tsv").readLines()
+                    .find { line -> line.startsWith('opuAC\t') }
+                    .tokenize('\t').drop(1).every { value -> value == 'NA' } },
                 { assert snapshot(
                     // software versions, without the Nextflow version: tests may run on several Nextflow versions
                     removeNextflowVersion("$outputDir/pipeline_info/osmoflow_software_versions.yml"),
@@ -101,6 +109,26 @@ nextflow_pipeline {
                     stable_name,
                     stable_path
                 ).match() }
+            )
+        }
+    }
+
+    test("-profile test, osmo_refdb release without report levels -stub") {
+
+        options "-stub"
+
+        when {
+            params {
+                outdir  = "$outputDir"
+                osmo_db = "${projectDir}/assets/test/refdb_no_report_levels"
+            }
+        }
+
+        then {
+            // stops once, before profiling, with a message that names the requirement
+            assertAll(
+                { assert workflow.failed },
+                { assert (workflow.stdout + workflow.stderr).any { line -> line.contains('needs osmo_refdb v10 or later') } }
             )
         }
     }

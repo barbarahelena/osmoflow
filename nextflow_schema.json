@@ -29,6 +29,12 @@
                     "description": "The output directory where the results will be saved. You have to use absolute paths to storage on Cloud infrastructure.",
                     "fa_icon": "fas fa-folder-open"
                 },
+                "profile_gene_matrices": {
+                    "type": "boolean",
+                    "description": "Also merge each FASTQ sample's gene_counts.tsv into gene x sample matrices (profile_<column>.tsv), one per column.",
+                    "help_text": "The profile results are the unit x sample matrices profile_unit_raw_count.tsv and profile_unit_rpm.tsv, which apply the osmo_refdb release's report levels: close paralogs summed into one unit, and units that are not reliable on short reads given as NA. The gene-level matrices ignore the report levels and list every family on its own, including the unreliable ones.",
+                    "fa_icon": "fas fa-table"
+                },
                 "email": {
                     "type": "string",
                     "description": "Email address for completion summary.",
@@ -47,13 +53,13 @@
                 "osmo_db": {
                     "type": "string",
                     "format": "directory-path",
-                    "description": "Path to an already-unpacked osmo_refdb release directory (e.g. the 'v10/' produced by 'osmotool download-db'). FASTQ samples (osmotool profile) need v10 or later. If not provided, the pipeline downloads it automatically.",
+                    "description": "Path to an already-unpacked osmo_refdb release directory (e.g. 'v11/'). FASTQ samples (osmotool profile) need v10 or later: the pipeline stops if the release has no osmo_refdb.profile_report_levels.tsv. If not provided, the pipeline downloads it automatically.",
                     "fa_icon": "fas fa-folder-open"
                 },
                 "osmo_db_release": {
                     "type": "string",
                     "default": "latest",
-                    "description": "osmo_refdb release to download from Zenodo when --osmo_db is not provided, or 'latest'.",
+                    "description": "osmo_refdb release to download from Zenodo when --osmo_db is not provided, or 'latest' (v10). FASTQ samples need v10 or later. v11 is not on Zenodo yet: use it with --osmo_db.",
                     "fa_icon": "fas fa-tag"
                 }
             }

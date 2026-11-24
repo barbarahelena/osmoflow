@@ -4,7 +4,7 @@ process OSMOTOOL_MERGE_COUNTS {
     tag mode
     label 'process_single'
 
-    container "docker://barbarahelena/osmotool:0.10.0"
+    container "docker://barbarahelena/osmotool:0.11.1"
 
     input:
     record(mode: String, counts: List<Path>)   // mode: 'profile' or 'annotate', never mixed

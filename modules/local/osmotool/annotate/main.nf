@@ -4,7 +4,7 @@ process OSMOTOOL_ANNOTATE {
     tag id
     label 'process_medium'
 
-    container "docker://barbarahelena/osmotool:0.10.0"
+    container "docker://barbarahelena/osmotool:0.11.1"
 
     input:
     record(id: String, fasta: Path)
@@ -14,6 +14,7 @@ process OSMOTOOL_ANNOTATE {
     record(
         id: id,
         counts: file('*.gene_counts.tsv'),
+        units: file('*.unit_counts.tsv', optional: true),   // with osmo_refdb v11+ (annotate report levels)
         stats: file('*.aln_stats.tsv'),
         systems: file('*.systems.tsv', optional: true),
         coordinates: file('*.gene_coordinates.tsv', optional: true)

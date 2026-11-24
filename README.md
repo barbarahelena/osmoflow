@@ -30,8 +30,9 @@ The pipeline runs these steps:
 2. **`OSMOTOOL_DOWNLOAD_DB`** — downloads and unpacks an `osmo_refdb` release, unless `--osmo_db` points at one already
 3. **`OSMOTOOL_PROFILE`** — runs `osmotool profile` on samplesheet rows with `fastq_1`[, `fastq_2`]
 4. **`OSMOTOOL_ANNOTATE`** — runs `osmotool annotate` on samplesheet rows with `fasta`
-5. **`OSMOTOOL_MERGE_COUNTS`** — merges each mode's per-sample `gene_counts.tsv` into one gene x sample matrix per value column (e.g. `profile_raw_count.tsv`, `profile_rpm.tsv`, `profile_copies_per_genome.tsv` and, when the `osmo_refdb` release ships a gene catalog, `profile_catalog_count.tsv`, `profile_catalog_ambiguous.tsv`, `profile_translated_count.tsv`; `annotate_raw_count.tsv`, `annotate_copies_per_kb.tsv`); the two modes are never merged together since RPM and `copies_per_kb` aren't comparable
-6. **`OSMOTOOL_MERGE_SYSTEMS`** and **`OSMOTOOL_MERGE_GENE_COORDINATES`** — merge each bin's `*.systems.tsv` and `*.gene_coordinates.tsv` from `OSMOTOOL_ANNOTATE` into one long-format `merged_systems.tsv` and `merged_gene_coordinates.tsv`; only run when at least one `annotate`-mode sample produced them
+5. **`OSMOTOOL_MERGE_UNITS`** — merges the per-sample `unit_counts.tsv` of `OSMOTOOL_PROFILE` into the profile results: unit x sample matrices `profile_unit_raw_count.tsv` and `profile_unit_rpm.tsv`, where a unit is a gene family, a group of close paralogs short reads can't tell apart, or a unit that isn't reliable on short reads (`NA`), as the `osmo_refdb` release's report levels decide; and one long table `profile_read_sources.tsv` with each unit's status and, with a gene catalog, how many reads came from the catalog and how many from translated search. With `osmo_refdb` v11 or later it does the same for `OSMOTOOL_ANNOTATE`'s `unit_counts.tsv`, which applies the release's annotate report levels: `annotate_unit_raw_count.tsv` and `annotate_unit_copies_per_kb.tsv`
+6. **`OSMOTOOL_MERGE_COUNTS`** — merges the per-sample `gene_counts.tsv` into one gene x sample matrix per column: always for `annotate` (`annotate_raw_count.tsv`, `annotate_copies_per_kb.tsv`), for `profile` only with `--profile_gene_matrices` (`profile_raw_count.tsv`, `profile_rpm.tsv`, ...; these ignore the report levels); the two modes are never merged together since RPM and `copies_per_kb` aren't comparable
+7. **`OSMOTOOL_MERGE_SYSTEMS`** and **`OSMOTOOL_MERGE_GENE_COORDINATES`** — merge each bin's `*.systems.tsv` and `*.gene_coordinates.tsv` from `OSMOTOOL_ANNOTATE` into one long-format `merged_systems.tsv` and `merged_gene_coordinates.tsv`; only run when at least one `annotate`-mode sample produced them
 
 ## Usage
 
@@ -60,8 +61,10 @@ nextflow run barbarahelena/osmoflow \
 
 By default, the `osmo_refdb` reference database is downloaded automatically (latest release). To reuse an
 already-downloaded copy instead, pass `--osmo_db /path/to/osmo_refdb/<release>` (a directory containing `osmo_refdb.dmnd`).
-FASTQ samples (`osmotool profile`) need osmo_refdb v10 or later, which ships a gene catalog; until v10 is on Zenodo,
-`latest` downloads v9, which is annotate-only, so pass `--osmo_db` with a v10 release for FASTQ samples.
+FASTQ samples (`osmotool profile`) need osmo_refdb v10 or later, which ships a gene catalog and report levels; with
+FASTQ samples the pipeline checks this before profiling and stops when the release has no
+`osmo_refdb.profile_report_levels.tsv`. `latest` downloads v10. v11, the current release, is not on Zenodo yet (its DOI
+will follow): use it with `--osmo_db /path/to/osmo_refdb/v11`.
 
 FASTQ samples can optionally be preprocessed before profiling. Each step is enabled by its own parameter:
 

@@ -35,7 +35,7 @@ params {
 
     // osmotool reference database
     osmo_db: Path?                  = null       // unpacked osmo_refdb release; downloaded when not given
-    osmo_db_release: String         = 'latest'
+    osmo_db_release: String         = 'latest'   // FASTQ samples need v10+ (report levels)
 
     // Optional read preprocessing (FASTQ samples only; every step is off by default)
     fastp: Boolean                  = false      // quality filtering + adapter trimming with fastp
@@ -44,6 +44,9 @@ params {
     subsamplelevel: Integer?        = null       // subsample to this number of reads (pairs) per sample
     readcounts: Boolean             = false      // table with read counts per sample (raw and final)
     perform_runmerging: Boolean     = false      // merge the runs (rows with the same sample name) of a FASTQ sample
+
+    // Profile outputs
+    profile_gene_matrices: Boolean  = false      // also merge gene_counts.tsv into gene x sample matrices (ignore the report levels)
 
     // Output and notifications (outdir and monochrome_logs are also set in nextflow.config, which config files read; config wins)
     outdir: String?                 = null

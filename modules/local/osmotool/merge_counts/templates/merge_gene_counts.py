@@ -58,7 +58,8 @@ for col in value_cols:
     matrix = pd.DataFrame({sample: df[col] for sample, df in tables.items()})
     matrix = matrix.reindex(sorted(matrix.index), columns=sorted(matrix.columns))
     matrix.index.name = "gene"
-    matrix.to_csv(f"{mode}_{col.lower()}.tsv", sep="\t")
+    # NA as osmotool writes it (e.g. copies_per_genome without enough markers), not an empty cell
+    matrix.to_csv(f"{mode}_{col.lower()}.tsv", sep="\t", na_rep="NA")
 
 # Version for the "versions" topic (eval() outputs only work in bash scripts)
 with open("pandas_version.txt", "w") as fh:
