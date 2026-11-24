@@ -28,6 +28,10 @@ nextflow_pipeline {
                 { assert path("$outputDir/profile/profile_unit_raw_count.tsv").readLines()
                     .find { line -> line.startsWith('opuAC\t') }
                     .tokenize('\t').drop(1).every { value -> value == 'NA' } },
+                // the same for annotate's unit table (osmo_refdb v11+: annotate report levels)
+                { assert path("$outputDir/annotate/annotate_unit_raw_count.tsv").readLines()
+                    .find { line -> line.startsWith('opuAC\t') }
+                    .tokenize('\t').drop(1).every { value -> value == 'NA' } },
                 { assert snapshot(
                     // software versions, without the Nextflow version: tests may run on several Nextflow versions
                     removeNextflowVersion("$outputDir/pipeline_info/osmoflow_software_versions.yml"),

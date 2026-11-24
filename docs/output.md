@@ -80,8 +80,12 @@ Produced by `osmotool profile` (the release's gene catalog first, then DIAMOND t
 <details markdown="1">
 <summary>Output files</summary>
 
+- `annotate/annotate_unit_raw_count.tsv`, `annotate/annotate_unit_copies_per_kb.tsv` (`osmo_refdb` v11 or later)
+  - Unit x sample matrices of `raw_count` (proteins) and `copies_per_kb`, one row per reporting unit, one column per annotated sample. Built from each sample's `unit_counts.tsv`, which applies the release's annotate report levels (`osmo_refdb.annotate_report_levels.tsv`, decided on full-length calibration proteins with `--method hmm`), like the profile unit matrices above: a `gene` unit is one family, a `group` unit sums close paralogs, and a `none` unit is `NA` in every sample, never 0. A family with no called protein counts 0. The annotate report levels are not the profile ones, so a unit can be reported in one mode and `NA` in the other.
+  - Releases before v11 have no annotate report levels: these matrices and the per-sample `unit_counts.tsv` are then not produced.
 - `annotate/<sample>/`
-  - `<sample>.gene_counts.tsv`: per-gene raw counts and `copies_per_kb` (gene-copy-number statistic) for each osmoadaptation gene family.
+  - `<sample>.unit_counts.tsv` (`osmo_refdb` v11 or later): the per-sample table the unit matrices are built from.
+  - `<sample>.gene_counts.tsv`: per-gene raw counts and `copies_per_kb` (gene-copy-number statistic) for each osmoadaptation gene family, every family on its own, without the report levels.
   - `<sample>.aln_stats.tsv`: alignment summary statistics.
   - `<sample>.systems.tsv`: multi-subunit system calls (e.g. `ect`), with presence, subunit count and co-localisation on a contig.
   - `<sample>.gene_coordinates.tsv`: contig, start, end and strand of each called osmoadaptation gene.
@@ -93,9 +97,6 @@ Produced by `osmotool profile` (the release's gene catalog first, then DIAMOND t
 </details>
 
 Produced by `osmotool annotate` (Prodigal + DIAMOND/HMMER) for samplesheet rows with `fasta`.
-
-With `osmo_refdb` v11 or later, which ships annotate report levels, `osmotool annotate` also writes a
-`<sample>.unit_counts.tsv`. The pipeline does not publish or merge it yet.
 
 > [!NOTE]
 > `profile` (RPM) and `annotate` (`copies_per_kb`) values measure different things and are not directly comparable — see the [osmotool README](https://github.com/barbarahelena/osmotool#output).

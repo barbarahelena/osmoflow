@@ -1,19 +1,19 @@
 nextflow.enable.types = true
 
 process OSMOTOOL_MERGE_UNITS {
-    tag 'profile'
+    tag mode
     label 'process_single'
 
     container "docker://barbarahelena/osmotool:0.11.1"
 
     input:
-    units: List<Path>   // *.unit_counts.tsv, one per profiled sample
+    record(mode: String, units: List<Path>)   // mode: 'profile' or 'annotate', never mixed; *.unit_counts.tsv, one per sample
 
     output:
     record(
-        raw_count: file('profile_unit_raw_count.tsv'),
-        rpm: file('profile_unit_rpm.tsv'),
-        sources: file('profile_read_sources.tsv')
+        mode: mode,
+        matrix: files("${mode}_unit_*.tsv").toSorted { a, b -> a.name <=> b.name },   // raw_count and RPM / copies_per_kb
+        sources: file('profile_read_sources.tsv', optional: true)                     // profile only
     )
 
     topic:
@@ -23,8 +23,10 @@ process OSMOTOOL_MERGE_UNITS {
     template 'merge_unit_counts.py'
 
     stub:
+    def value  = mode == 'profile' ? 'rpm' : 'copies_per_kb'
+    def extras = mode == 'profile' ? 'profile_read_sources.tsv' : ''
     """
     echo stub > pandas_version.txt
-    touch profile_unit_raw_count.tsv profile_unit_rpm.tsv profile_read_sources.tsv
+    touch ${mode}_unit_raw_count.tsv ${mode}_unit_${value}.tsv ${extras}
     """
 }

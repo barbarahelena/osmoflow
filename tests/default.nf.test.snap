@@ -41,8 +41,11 @@
                 "annotate/TEST_ASSEMBLY/TEST_ASSEMBLY.gene_coordinates.tsv",
                 "annotate/TEST_ASSEMBLY/TEST_ASSEMBLY.gene_counts.tsv",
                 "annotate/TEST_ASSEMBLY/TEST_ASSEMBLY.systems.tsv",
+                "annotate/TEST_ASSEMBLY/TEST_ASSEMBLY.unit_counts.tsv",
                 "annotate/annotate_copies_per_kb.tsv",
                 "annotate/annotate_raw_count.tsv",
+                "annotate/annotate_unit_copies_per_kb.tsv",
+                "annotate/annotate_unit_raw_count.tsv",
                 "annotate/merged_gene_coordinates.tsv",
                 "annotate/merged_systems.tsv",
                 "bowtie2",
@@ -88,7 +91,7 @@
                 "readcounts.csv:md5,6b673783f0536e349cf2d84897084d16"
             ]
         ],
-        "timestamp": "2026-11-24T22:16:43.298860729",
+        "timestamp": "2026-11-24T22:29:41.579253291",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.10.0"
@@ -126,8 +129,11 @@
                 "annotate/TEST_ASSEMBLY/TEST_ASSEMBLY.gene_coordinates.tsv",
                 "annotate/TEST_ASSEMBLY/TEST_ASSEMBLY.gene_counts.tsv",
                 "annotate/TEST_ASSEMBLY/TEST_ASSEMBLY.systems.tsv",
+                "annotate/TEST_ASSEMBLY/TEST_ASSEMBLY.unit_counts.tsv",
                 "annotate/annotate_copies_per_kb.tsv",
                 "annotate/annotate_raw_count.tsv",
+                "annotate/annotate_unit_copies_per_kb.tsv",
+                "annotate/annotate_unit_raw_count.tsv",
                 "annotate/merged_gene_coordinates.tsv",
                 "annotate/merged_systems.tsv",
                 "pipeline_info",
@@ -149,7 +155,7 @@
                 
             ]
         ],
-        "timestamp": "2026-11-24T22:13:44.390608421",
+        "timestamp": "2026-11-24T22:26:56.429771252",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.10.0"
@@ -197,8 +203,11 @@
                 "annotate/TEST_ASSEMBLY/TEST_ASSEMBLY.gene_coordinates.tsv",
                 "annotate/TEST_ASSEMBLY/TEST_ASSEMBLY.gene_counts.tsv",
                 "annotate/TEST_ASSEMBLY/TEST_ASSEMBLY.systems.tsv",
+                "annotate/TEST_ASSEMBLY/TEST_ASSEMBLY.unit_counts.tsv",
                 "annotate/annotate_copies_per_kb.tsv",
                 "annotate/annotate_raw_count.tsv",
+                "annotate/annotate_unit_copies_per_kb.tsv",
+                "annotate/annotate_unit_raw_count.tsv",
                 "annotate/merged_gene_coordinates.tsv",
                 "annotate/merged_systems.tsv",
                 "bowtie2",
@@ -234,7 +243,7 @@
                 "readcounts.csv:md5,70fe0d08ca756ab654be4bcb07ed6491"
             ]
         ],
-        "timestamp": "2026-11-24T22:15:15.13322956",
+        "timestamp": "2026-11-24T22:28:19.521259351",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.10.0"

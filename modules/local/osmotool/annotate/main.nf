@@ -14,6 +14,7 @@ process OSMOTOOL_ANNOTATE {
     record(
         id: id,
         counts: file('*.gene_counts.tsv'),
+        units: file('*.unit_counts.tsv', optional: true),   // with osmo_refdb v11+ (annotate report levels)
         stats: file('*.aln_stats.tsv'),
         systems: file('*.systems.tsv', optional: true),
         coordinates: file('*.gene_coordinates.tsv', optional: true)
